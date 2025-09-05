@@ -7,7 +7,7 @@ using UnityEngine;
 [RequireComponent(typeof(UnitPathAgent))]
 [RequireComponent(typeof(GridAgent))]
 [RequireComponent(typeof(WeaponController))]
-public class UnitAttackAgent : MonoBehaviour
+public class UnitAttackAgent : GameTimeBehaviour
 {
     [Header("Attack settings")]
     public float desiredRangeCells = 8f;   // 目標射程
@@ -35,8 +35,10 @@ public class UnitAttackAgent : MonoBehaviour
     void Update()
     {
         if (_target == null) return;
-        if (_target.Health == null || _target.Health.Current <= 0) { _target = null; return; }
-
+        {
+            var st = _target.GetComponent<CombatantStatus>();
+            if (st == null || st.isDead || st.currentHP <= 0) { _target = null; return; }
+        }
         var myCell = _grid.Cell;
         var tgtCell = _target.Grid != null ? _target.Grid.Cell : MapManager.Instance.WorldToCell(_target.transform.position);
 
@@ -53,7 +55,7 @@ public class UnitAttackAgent : MonoBehaviour
         _weapon.allowAutoFire = hasLoS && inRange;
 
         // 位置調整
-        _repathT += Time.deltaTime;
+        _repathT += dt;
         if (_repathT >= repathInterval)
         {
             _repathT = 0f;

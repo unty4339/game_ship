@@ -4,7 +4,7 @@ using UnityEngine;
 /// リアルタイムな位置補間を担当
 /// GridAgentが承認したセルへ移動
 /// </summary>
-public class UnitMotor : MonoBehaviour
+public class UnitMotor :  GameTimeBehaviour
 {
     [SerializeField] float moveSpeed = 5f;
     [SerializeField] float snapThreshold = 0.03f; // 到達とみなす距離
@@ -31,7 +31,7 @@ public class UnitMotor : MonoBehaviour
         }
 
         IsMoving = true;
-        transform.position = pos + (dir / dist) * moveSpeed * Time.deltaTime;
+        transform.position = pos + (dir / dist) * moveSpeed * dt;
         return false;
     }
 }

@@ -6,7 +6,7 @@ using UnityEngine;
 /// ユニットの体力 気絶値 ステータス効果を管理
 /// 効果はIStatusEffectとして拡張可能
 /// </summary>
-public class CombatantStatus : MonoBehaviour
+public class CombatantStatus : GameTimeBehaviour
 {
     [Header("Vitals")]
     [SerializeField] public int maxHP = 100;
@@ -37,22 +37,17 @@ public class CombatantStatus : MonoBehaviour
     void Update()
     {
         if (isDead) return;
-        _accum += Time.deltaTime;
+        _accum += dt;   // ← ここを Time.deltaTime から変更
         if (_accum < tickSec) return;
-        float dt = _accum;
+        float step = _accum;
         _accum = 0f;
 
-        // 効果更新
-        foreach (var kv in _effects)
-            kv.Value.OnTick(this, dt);
+        foreach (var kv in _effects) kv.Value.OnTick(this, step);
 
-        // 効果の寿命や空スタックをクリーンアップ
         _tmpClearList.Clear();
-        foreach (var kv in _effects)
-            if (kv.Value.IsExpired) _tmpClearList.Add(kv.Key);
+        foreach (var kv in _effects) if (kv.Value.IsExpired) _tmpClearList.Add(kv.Key);
         foreach (var k in _tmpClearList) _effects.Remove(k);
 
-        // ステート再計算
         RecalcStates();
     }
 

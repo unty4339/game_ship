@@ -5,7 +5,7 @@ using UnityEngine;
 /// SpriteRenderer のスケールとアルファを時間で減衰
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer))]
-public class SimpleFlash : MonoBehaviour
+public class SimpleFlash : GameTimeBehaviour
 {
     public float life = 0.08f;
     public float startScale = 1f;
@@ -37,7 +37,7 @@ public class SimpleFlash : MonoBehaviour
 
     void Update()
     {
-        t += Time.deltaTime / Mathf.Max(0.0001f, life);
+        t += dt / Mathf.Max(0.0001f, life);
         float s = Mathf.Lerp(startScale, endScale, t);
         float a = Mathf.Lerp(startAlpha, endAlpha, t);
         transform.localScale = Vector3.one * s;

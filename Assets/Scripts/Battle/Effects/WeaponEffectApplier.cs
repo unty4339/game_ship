@@ -1,10 +1,9 @@
 using UnityEngine;
 
 /// <summary>
-/// CombatResolverの命中イベントを受け武器設定の効果をターゲットに付与
-/// WeaponControllerのonHitEffectsを参照
+/// 命中イベントを受けて武器設定の効果を適用
 /// </summary>
-public class WeaponEffectOnHit : MonoBehaviour
+public class WeaponEffectApplier : MonoBehaviour
 {
     bool hooked;
 
@@ -13,9 +12,7 @@ public class WeaponEffectOnHit : MonoBehaviour
     void OnDisable()
     {
         if (CombatResolver.Instance != null)
-        {
             CombatResolver.Instance.OnHit -= HandleHit;
-        }
         hooked = false;
     }
 
@@ -39,7 +36,6 @@ public class WeaponEffectOnHit : MonoBehaviour
         foreach (var spec in wc.onHitEffects.onHitEffects)
         {
             if (spec.chance < 1f && Random.value > spec.chance) continue;
-
             var eff = StatusEffectFactory.Create(spec.id, spec.amount, spec.duration);
             if (eff != null) status.AddOrStackEffect(eff);
         }

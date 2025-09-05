@@ -5,7 +5,7 @@ using UnityEngine;
 /// LineRendererのポジションを制御
 /// </summary>
 [RequireComponent(typeof(LineRenderer))]
-public class Tracer : MonoBehaviour
+public class Tracer : GameTimeBehaviour
 {
     [Header("Motion")]
     public float speed = 40f;          // 単位はワールド毎秒
@@ -63,7 +63,7 @@ public class Tracer : MonoBehaviour
     {
         if (!launched) return;
 
-        float travel = speed * Time.deltaTime;
+        float travel = speed * dt;
         t = Mathf.Min(1f, t + (dist > 0.0001f ? travel / dist : 1f));
 
         var head = Vector3.Lerp(startPos, endPos, t);

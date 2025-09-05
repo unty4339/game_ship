@@ -90,8 +90,9 @@ public class UnitTargeting : MonoBehaviour
 
     bool IsAlive(UnitCore u)
     {
-        var hp = u != null ? u.Health : null;
-        return hp != null && hp.Current > 0;
+        if (u == null) return false;
+        var st = u.GetComponent<CombatantStatus>();
+        return st != null && !st.isDead && st.currentHP > 0;
     }
 
     bool HasLoSTo(UnitCore u)

@@ -117,7 +117,6 @@ public class AutoDummyRosterSetup : MonoBehaviour
         // 必須コンポーネントを付与
         var core = go.AddComponent<UnitCore>();
         var fac = go.AddComponent<FactionTag>();
-        var hp = go.AddComponent<Health>();
         var grid = go.AddComponent<GridAgent>();
         var motor = go.AddComponent<UnitMotor>();
         var path = go.AddComponent<UnitPathAgent>();

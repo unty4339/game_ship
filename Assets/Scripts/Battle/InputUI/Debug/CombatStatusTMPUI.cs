@@ -8,7 +8,7 @@ using UnityEngine.UI;
 /// 2D向けにスクリーン座標で追従表示
 /// </summary>
 [RequireComponent(typeof(CombatantStatus))]
-public class CombatStatusTMPUI : MonoBehaviour
+public class CombatStatusTMPUI : GameTimeBehaviour
 {
     [Header("Prefab and Canvas")]
     [Tooltip("TextMeshProUGUIのプレハブ")]

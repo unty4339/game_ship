@@ -8,7 +8,7 @@ public class UnitCore : MonoBehaviour
 {
     public int UnitId { get; private set; }
     public FactionTag Faction { get; private set; }
-    public Health Health { get; private set; }
+    public CombatantStatus Status { get; private set; }
     public GridAgent Grid { get; private set; }
     public UnitMotor Motor { get; private set; }
     public UnitPathAgent Path { get; private set; }
@@ -19,7 +19,7 @@ public class UnitCore : MonoBehaviour
     void Awake()
     {
         Faction = GetComponent<FactionTag>();
-        Health = GetComponent<Health>();
+        Status = GetComponent<CombatantStatus>();
         Grid = GetComponent<GridAgent>();
         Motor = GetComponent<UnitMotor>();
         Path = GetComponent<UnitPathAgent>();

@@ -4,7 +4,7 @@ using UnityEngine;
 /// 射撃制御の最小実装
 /// 外部からターゲットを指定され 自動射撃が許可されたらレートに従い発砲
 /// </summary>
-public class WeaponController : MonoBehaviour
+public class WeaponController : GameTimeBehaviour
 {
     [Header("Weapon")]
     public float fireRate = 4f;
@@ -24,7 +24,7 @@ public class WeaponController : MonoBehaviour
 
     void Update()
     {
-        _cool -= Time.deltaTime;
+        _cool -= dt;
 
         // ターゲット取得
         UnitCore tgt = _overrideTarget;

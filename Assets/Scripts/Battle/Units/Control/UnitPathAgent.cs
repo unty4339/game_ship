@@ -5,7 +5,7 @@ using UnityEngine;
 /// A*により経路を取得しウェイポイント列をMotorへ供給
 /// 再探索と経路追従を管理
 /// </summary>
-public class UnitPathAgent : MonoBehaviour
+public class UnitPathAgent : GameTimeBehaviour
 {
     [SerializeField] float repathInterval = 0.3f;
     Queue<Vector3Int> _queue = new Queue<Vector3Int>();
@@ -20,7 +20,7 @@ public class UnitPathAgent : MonoBehaviour
         for (int i = 1; i < path.Count; i++) _queue.Enqueue(path[i]);
     }
 
-    void Update()
+    public void Update()
     {
         var motor = GetComponent<UnitMotor>();
         var mm = MapManager.Instance;

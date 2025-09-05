@@ -31,13 +31,17 @@ public class CommandController : MonoBehaviour
 
     void IssueMoveCommand()
     {
+        Debug.Log("RC start"); // 右クリック受付
         // UI上は無視
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+        {
             return;
+        }
 
         // 追加 ユニットに当たっているかを優先判定
         var cam = Camera.main;
         var mouseWorld = cam.ScreenToWorldPoint(Input.mousePosition);
+
         var hit = Physics2D.Raycast(mouseWorld, Vector2.zero, rayMaxDist, unitMask);
         if (hit.collider != null)
         {

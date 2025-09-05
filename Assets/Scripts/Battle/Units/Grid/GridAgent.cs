@@ -22,7 +22,6 @@ public class GridAgent : MonoBehaviour
     /// </summary>
     public bool TryReserve(Vector3Int nextCell)
     {
-        Debug.Log($"TryReserve: {nextCell}");
         var mm = MapManager.Instance;
         if (!mm.IsInsideBounds(nextCell) || !mm.IsPassable(nextCell)) return false;
 
@@ -47,7 +46,6 @@ public class GridAgent : MonoBehaviour
         {
             dir.UpdateUnitCell(GetComponent<UnitCore>(), old, nextCell);
         }
-        Debug.Log($"TryReserve: {nextCell} success");
         return true;
     }
 }

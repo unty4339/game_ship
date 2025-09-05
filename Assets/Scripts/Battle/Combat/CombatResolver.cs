@@ -116,32 +116,12 @@ public class CombatResolver : MonoBehaviour
         // 命中ならダメージ決定
         if (hit)
         {
+            // 命中なら
             int dmg = ComputeDamage();
             bool crit = UnityEngine.Random.value < critChance;
-            if (crit) dmg = Mathf.RoundToInt(dmg * critMultiplier);
 
-            if (applyDamageDirectly)
-            {
-                var hp = tCore.Health ?? target.GetComponent<Health>();
-                if (hp != null) hp.Damage(dmg);
-
-                // ★追加 UI側のソースであるCombatantStatusにも反映
-                var status = target.GetComponent<CombatantStatus>();
-                if (status != null) status.ApplyDamage(dmg);
-            }
-
-            var contact = EstimateContactPoint(attacker, target);
-            OnHit?.Invoke(new HitEvent
-            {
-                attacker = attacker,
-                target = target,
-                damage = dmg,
-                isCritical = crit,
-                accuracyUsed = acc,
-                distanceCells = dist,
-                shootOrigin = GetMuzzleWorld(attacker),
-                contactPoint = contact
-            });
+            var status = target.GetComponent<CombatantStatus>();
+            if (status != null) status.ApplyDamage(dmg);
         }
         else
         {
