@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// 完全自動のダミー編成セットアップ
-/// アーキタイプと装備をランタイムに生成しテンプレートユニットを用意
+/// アーキタイプと装備と武器データをランタイムに生成しテンプレートユニットを用意
 /// RosterManagerへ編成を投入
 /// </summary>
 public class AutoDummyRosterSetup : MonoBehaviour
@@ -36,21 +36,22 @@ public class AutoDummyRosterSetup : MonoBehaviour
         var allyTemplate = CreateUnitTemplate("UnitTemplate_Ally", allyColor);
         var enemyTemplate = CreateUnitTemplate("UnitTemplate_Enemy", enemyColor);
 
-        // ランタイム専用のSOを生成
+        // ランタイム専用のアーキタイプSOを生成
         var allyType = ScriptableObject.CreateInstance<UnitArchetypeSO>();
         allyType.displayName = "Auto Ally";
         allyType.unitPrefab = allyTemplate;
         allyType.baseHP = 110;
-        allyType.baseDamage = 18;
-        allyType.baseFireRate = 3.0f;
+        allyType.baseDamage = 18;     // 互換フィールド 現在は未使用でも保持
+        allyType.baseFireRate = 3.0f; // 互換フィールド 現在は未使用でも保持
 
         var enemyType = ScriptableObject.CreateInstance<UnitArchetypeSO>();
         enemyType.displayName = "Auto Enemy";
         enemyType.unitPrefab = enemyTemplate;
         enemyType.baseHP = 90;
-        enemyType.baseDamage = 22;
-        enemyType.baseFireRate = 2.5f;
+        enemyType.baseDamage = 22;     // 互換フィールド
+        enemyType.baseFireRate = 2.5f; // 互換フィールド
 
+        // ランタイム専用の装備SOを生成 任意
         var equipHP = ScriptableObject.CreateInstance<EquipmentSO>();
         equipHP.equipmentName = "HP Booster";
         equipHP.hpBonus = 20;
@@ -72,6 +73,34 @@ public class AutoDummyRosterSetup : MonoBehaviour
         equipROF.fireRateBonus = 0.5f;
         equipROF.overrideVisualPrefab = null;
 
+        // ランタイム専用の武器StatsSOを生成
+        var allyWeapon = ScriptableObject.CreateInstance<WeaponStatsSO>();
+        allyWeapon.name = "AutoAlly_RifleStats";
+        allyWeapon.fireRate = 4.5f;
+        allyWeapon.rangeCells = 14f;
+        allyWeapon.baseAccuracy = 0.7f;
+        allyWeapon.damageMin = 8;
+        allyWeapon.damageMax = 12;
+        allyWeapon.critChance = 0.1f;
+        allyWeapon.critMultiplier = 1.5f;
+
+        var enemyWeapon = ScriptableObject.CreateInstance<WeaponStatsSO>();
+        enemyWeapon.name = "AutoEnemy_SMGStats";
+        enemyWeapon.fireRate = 5.5f;
+        enemyWeapon.rangeCells = 12f;
+        enemyWeapon.baseAccuracy = 0.6f;
+        enemyWeapon.damageMin = 6;
+        enemyWeapon.damageMax = 10;
+        enemyWeapon.critChance = 0.08f;
+        enemyWeapon.critMultiplier = 1.4f;
+
+        // 必要なら命中時効果のSOもここで生成可能 任意
+        WeaponEffectsSO allyOnHit = null;
+        WeaponEffectsSO enemyOnHit = null;
+        // 例
+        // allyOnHit = ScriptableObject.CreateInstance<WeaponEffectsSO>();
+        // allyOnHit.onHitEffects.Add(new WeaponEffectsSO.EffectSpec { id = "Bleed", amount = 1.5f, duration = 4f, chance = 0.5f });
+
         // 味方編成を投入
         for (int i = 0; i < allyCount; i++)
         {
@@ -82,7 +111,9 @@ public class AutoDummyRosterSetup : MonoBehaviour
                 archetype = allyType,
                 equipA = (i % 2 == 0) ? equipHP : equipROF,
                 equipB = (i % 3 == 0) ? equipDMG : null,
-                level = 1
+                level = 1,
+                weaponStats = allyWeapon,          // 追加 武器データを割当
+                onHitEffects = allyOnHit           // 任意
             };
             RosterManager.Instance.Add(loadout);
         }
@@ -97,7 +128,9 @@ public class AutoDummyRosterSetup : MonoBehaviour
                 archetype = enemyType,
                 equipA = (i % 2 == 0) ? equipDMG : equipROF,
                 equipB = (i % 3 == 0) ? equipHP : null,
-                level = 1
+                level = 1,
+                weaponStats = enemyWeapon,         // 追加
+                onHitEffects = enemyOnHit          // 任意
             };
             RosterManager.Instance.Add(loadout);
         }
@@ -122,6 +155,7 @@ public class AutoDummyRosterSetup : MonoBehaviour
         var path = go.AddComponent<UnitPathAgent>();
         var per = go.AddComponent<UnitPerception>();
         var tgt = go.AddComponent<UnitTargeting>();
+        var atk = go.AddComponent<UnitAttackAgent>();
         var wep = go.AddComponent<WeaponController>();
         var col = go.AddComponent<BoxCollider2D>(); // クリック検出用
         col.isTrigger = true;
@@ -131,12 +165,13 @@ public class AutoDummyRosterSetup : MonoBehaviour
         var ring = new GameObject("Highlight");
         ring.transform.SetParent(go.transform, false);
         var ringSr = ring.AddComponent<SpriteRenderer>();
-        ringSr.sprite = GenerateFallbackSprite();   // 代用でOK
-        ringSr.color = new Color(1f,1f,0f,0.35f);
+        ringSr.sprite = GenerateFallbackSprite();
+        ringSr.color = new Color(1f, 1f, 0f, 0.35f);
         ringSr.sortingLayerName = "Units";
-        ringSr.sortingOrder = 100;                  // 本体より前
+        ringSr.sortingOrder = 100;
         ring.SetActive(false);
         selectable.highlight = ring;
+
         // 見た目
         var sr = go.AddComponent<SpriteRenderer>();
         if (unitSprite != null)
@@ -145,13 +180,10 @@ public class AutoDummyRosterSetup : MonoBehaviour
         }
         else
         {
-            // デフォルトの四角スプライト相当を簡易生成
-            // 実運用では任意のスプライトを指定推奨
             sr.sprite = GenerateFallbackSprite();
         }
         sr.color = tint;
 
-        // コリジョンは任意 ここでは省略
         // 位置はスポーン時にFactoryがスナップ
 
         return go;

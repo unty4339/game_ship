@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// 戦闘イベントを受け取りVFXを生成するブリッジ
-/// マズルフラッシュ トレーサー 命中スパークを生成
+/// Resolverの再生成に耐える再購読ロジック
 /// </summary>
 public class CombatVFXBridge : MonoBehaviour
 {
@@ -20,44 +20,56 @@ public class CombatVFXBridge : MonoBehaviour
     [Tooltip("マズルが見つからない場合のオフセット")]
     public Vector3 muzzleOffset = new Vector3(0.2f, 0f, 0f);
 
-    bool hooked;  // 購読済みフラグ
+    CombatResolver _hooked;
 
-    void Start()
+    void OnEnable()  { TryRehook(); }
+    void Update()    { TryRehook(); }
+    void OnDisable() { Unhook(); }
+
+    void TryRehook()
     {
-        if (CombatResolver.Instance != null)
+        var cur = CombatResolver.Instance;
+        if (cur == _hooked) return;
+
+        Unhook();
+        if (cur != null)
         {
-            CombatResolver.Instance.OnHit += HandleHit;
-            CombatResolver.Instance.OnMiss += HandleMiss;
+            cur.OnShot += HandleShot;   // 追加
+            cur.OnHit  += HandleHit;
+            cur.OnMiss += HandleMiss;
+            _hooked = cur;
         }
     }
 
-    void OnDisable()
+    void Unhook()
     {
-        if (CombatResolver.Instance != null)
+        if (_hooked != null)
         {
-            CombatResolver.Instance.OnHit -= HandleHit;
-            CombatResolver.Instance.OnMiss -= HandleMiss;
+            _hooked.OnShot -= HandleShot; // 追加
+            _hooked.OnHit  -= HandleHit;
+            _hooked.OnMiss -= HandleMiss;
+            _hooked = null;
         }
+    }
+
+    void HandleShot(CombatResolver.ShotEvent e)
+    {
+        var origin = GetMuzzleWorld(e.attacker);
+        var end = e.aimPoint;
+
+        SpawnMuzzle(origin, e.attacker.transform);
+        SpawnTracer(origin, end, false);
     }
 
     void HandleHit(CombatResolver.HitEvent e)
     {
-        var origin = GetMuzzleWorld(e.attacker);
         var end = e.contactPoint != Vector3.zero ? e.contactPoint : e.target.transform.position;
-
-        SpawnMuzzle(origin, e.attacker.transform);
-        SpawnTracer(origin, end, true);
         SpawnImpact(end, e.target.transform);
     }
 
     void HandleMiss(CombatResolver.MissEvent e)
     {
-        var origin = GetMuzzleWorld(e.attacker);
-        var end = e.target != null ? e.target.transform.position : origin + Vector3.right * 3f;
-
-        SpawnMuzzle(origin, e.attacker.transform);
-        SpawnTracer(origin, end, false);
-        // ミス時は着弾スパークは生成しない
+        // ミス時は着弾スパーク無し OnShotでトレーサーは出ている
     }
 
     Vector3 GetMuzzleWorld(GameObject attacker)

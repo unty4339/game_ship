@@ -31,7 +31,6 @@ public class CommandController : MonoBehaviour
 
     void IssueMoveCommand()
     {
-        Debug.Log("RC start"); // 右クリック受付
         // UI上は無視
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
         {

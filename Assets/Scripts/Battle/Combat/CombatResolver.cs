@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 /// <summary>
 /// 戦闘解決の中枢クラス
@@ -58,6 +59,9 @@ public class CombatResolver : MonoBehaviour
     [Tooltip("射撃元を推定するためのオフセット 子Transformなどが無い場合に使用")]
     public Vector3 muzzleOffset = Vector3.zero;
 
+    /// <summary>射撃イベント</summary>
+    public event Action<ShotEvent> OnShot;
+
     /// <summary>命中イベント</summary>
     public event Action<HitEvent> OnHit;
 
@@ -83,50 +87,80 @@ public class CombatResolver : MonoBehaviour
     {
         if (attacker == null || target == null) return;
 
-        var aCore = attacker.GetComponent<UnitCore>();
-        var tCore = target.GetComponent<UnitCore>();
-        if (aCore == null || tCore == null) return;
+        // 射出点と狙い点を計算
+        var origin = attacker.transform.position;
+        var aim = target.transform.position;
 
-        var aGrid = aCore.Grid ?? attacker.GetComponent<GridAgent>();
-        var tGrid = tCore.Grid ?? target.GetComponent<GridAgent>();
-        if (aGrid == null || tGrid == null) return;
-
-        // フレンドリーファイア判定
-        var aFaction = aCore.GetComponent<FactionTag>()?.FactionId ?? 0;
-        var tFaction = tCore.GetComponent<FactionTag>()?.FactionId ?? 0;
-        if (!allowFriendlyFire && aFaction == tFaction) { EmitMiss(attacker, target, Vector3.zero); return; }
-
-        // LoS確認
-        if (checkLineOfSight)
+        // 追加 必ず発砲イベントを先に出す
+        OnShot?.Invoke(new ShotEvent
         {
-            if (!LoSManager.Instance.CanSeeCells(aGrid.Cell, tGrid.Cell))
-            {
-                EmitMiss(attacker, target, Vector3.zero);
-                return;
-            }
-        }
+            attacker = attacker,
+            target = target,
+            origin = origin,
+            aimPoint = aim
+        });
 
-        // 命中率計算
-        int d2 = UnitDirectory.SqrCellDistance(aGrid.Cell, tGrid.Cell);
-        float dist = Mathf.Sqrt(d2);
-        float acc = ComputeAccuracy(dist);
+        // 命中判定とダメージ
+        bool hit = ComputeHit(attacker, target, out int dmg, out Vector3 contact, out bool crit);
 
-        bool hit = UnityEngine.Random.value <= acc;
-
-        // 命中ならダメージ決定
         if (hit)
         {
-            // 命中なら
-            int dmg = ComputeDamage();
-            bool crit = UnityEngine.Random.value < critChance;
-
             var status = target.GetComponent<CombatantStatus>();
             if (status != null) status.ApplyDamage(dmg);
+
+            OnHit?.Invoke(new HitEvent
+            {
+                attacker = attacker,
+                target = target,
+                contactPoint = contact != Vector3.zero ? contact : aim,
+                damage = dmg,
+                isCritical = crit
+            });
         }
         else
         {
-            EmitMiss(attacker, target, GetMuzzleWorld(attacker));
+            OnMiss?.Invoke(new MissEvent
+            {
+                attacker = attacker,
+                target = target
+            });
         }
+    }
+
+    bool ComputeHit(GameObject attacker, GameObject target,
+        out int damage, out Vector3 contactPoint, out bool critical)
+    {
+        damage = 0;
+        critical = false;
+        contactPoint = GetColliderCenter(target) ?? target.transform.position;
+
+        var wc = attacker.GetComponent<WeaponController>();
+        float acc = wc != null ? wc.GetAccuracy() : 0.7f;
+        int dmin = wc != null ? wc.GetDamageMin() : 5;
+        int dmax = wc != null ? wc.GetDamageMax() : 12;
+        float cRate = wc != null ? wc.GetCritChance() : 0.1f;
+        float cMul  = wc != null ? wc.GetCritMultiplier() : 1.5f;
+
+        bool hit = Random.value < acc;
+        if (!hit) return false;
+
+        damage = Random.Range(dmin, dmax + 1);
+
+        if (Random.value < cRate)
+        {
+            critical = true;
+            damage = Mathf.RoundToInt(damage * cMul);
+        }
+        return true;
+    }
+
+    Vector3? GetColliderCenter(GameObject go)
+    {
+        var c2 = go.GetComponent<Collider2D>();
+        if (c2 != null) return c2.bounds.center;
+        var c3 = go.GetComponent<Collider>();
+        if (c3 != null) return c3.bounds.center;
+        return null;
     }
 
     /// <summary>
@@ -190,6 +224,15 @@ public class CombatResolver : MonoBehaviour
     private Vector3 EstimateContactPoint(GameObject attacker, GameObject target)
     {
         return target.transform.position;
+    }
+
+    // 追加 イベント
+    public struct ShotEvent
+    {
+        public GameObject attacker;
+        public GameObject target;
+        public Vector3 origin;
+        public Vector3 aimPoint;
     }
 
     /// <summary>

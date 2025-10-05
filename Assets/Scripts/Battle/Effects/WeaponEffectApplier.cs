@@ -2,25 +2,36 @@ using UnityEngine;
 
 /// <summary>
 /// 命中イベントを受けて武器設定の効果を適用
+/// Resolverの再生成に耐える再購読ロジック
 /// </summary>
 public class WeaponEffectApplier : MonoBehaviour
 {
-    bool hooked;
+    CombatResolver _hookedResolver;
 
-    void OnEnable() { TryHook(); }
-    void Update() { if (!hooked) TryHook(); }
-    void OnDisable()
+    void OnEnable()  { TryRehook(); }
+    void Update()    { TryRehook(); }
+    void OnDisable() { Unhook(); }
+
+    void TryRehook()
     {
-        if (CombatResolver.Instance != null)
-            CombatResolver.Instance.OnHit -= HandleHit;
-        hooked = false;
+        var cur = CombatResolver.Instance;
+        if (cur == _hookedResolver) return;
+
+        Unhook();
+        if (cur != null)
+        {
+            cur.OnHit += HandleHit;
+            _hookedResolver = cur;
+        }
     }
 
-    void TryHook()
+    void Unhook()
     {
-        if (CombatResolver.Instance == null || hooked) return;
-        CombatResolver.Instance.OnHit += HandleHit;
-        hooked = true;
+        if (_hookedResolver != null)
+        {
+            _hookedResolver.OnHit -= HandleHit;
+            _hookedResolver = null;
+        }
     }
 
     void HandleHit(CombatResolver.HitEvent e)
