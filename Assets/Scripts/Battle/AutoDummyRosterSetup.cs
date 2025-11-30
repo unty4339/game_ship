@@ -155,7 +155,6 @@ public class AutoDummyRosterSetup : MonoBehaviour
         var path = go.AddComponent<UnitPathAgent>();
         var per = go.AddComponent<UnitPerception>();
         var tgt = go.AddComponent<UnitTargeting>();
-        var atk = go.AddComponent<UnitAttackAgent>();
         var wep = go.AddComponent<WeaponController>();
         var col = go.AddComponent<BoxCollider2D>(); // クリック検出用
         col.isTrigger = true;

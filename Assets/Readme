@@ -1,0 +1,406 @@
+# プロジェクト クラス構成ドキュメント
+
+## コア システム
+
+### GameTime
+- **ファイル名**: `Battle/Time/GameTime.cs`
+- **主要機能**: ゲーム内時間スケール管理（一時停止、低速、通常、高速の切り替え）
+- **呼び出し元**: GameTimeBehaviour継承クラス、GameSpeedController、GameSpeedDebug
+- **アタッチ先**: シングルトンGameObject（DontDestroyOnLoad）
+- **備考**: スケール適用されたdeltaTimeと非適用のUnscaledDeltaTimeを提供
+
+### GameTimeBehaviour
+- **ファイル名**: `Battle/Time/GameTimeBehaviour.cs`
+- **主要機能**: GameTimeベースの時間取得機能を提供する基底クラス
+- **呼び出し元**: なし（継承元として機能）
+- **アタッチ先**: なし（抽象基底クラス）
+- **備考**: dt（スケール適用）とudt（非適用）プロパティを提供
+
+### Bootstrapper
+- **ファイル名**: `Battle/Bootstrapper.cs`
+- **主要機能**: 不足している基盤システム（GameTime、UnitDirectory等）を自動生成
+- **呼び出し元**: なし（Awakeで自動実行）
+- **アタッチ先**: シーン内の任意のGameObject
+- **備考**: テスト復旧用の簡易ブートストラップ
+
+---
+
+## ユニット コア システム
+
+### UnitCore
+- **ファイル名**: `Battle/Units/UnitCore.cs`
+- **主要機能**: ユニットの中核、各種コンポーネントへの統一アクセスポイント
+- **呼び出し元**: UnitFactory、UnitDirectory、各種制御スクリプト
+- **アタッチ先**: ユニットプレハブの基底GameObject
+- **備考**: UnitId、Faction、Status、Grid等への参照を一元管理
+
+### FactionTag
+- **ファイル名**: `Battle/Units/FactionTag.cs`
+- **主要機能**: 陣営ID管理、味方・敵判定
+- **呼び出し元**: UnitDirectory、UnitTargeting、UnitFactory
+- **アタッチ先**: ユニットGameObject
+- **備考**: FactionId（0=味方、1=敵など）を保持
+
+### UnitDirectory
+- **ファイル名**: `Battle/UnitDirectory.cs`
+- **主要機能**: 全ユニット索引管理、陣営別検索、セル空間ハッシュによる近傍検索
+- **呼び出し元**: GridAgent、UnitFactory、UnitTargeting、CommandController
+- **アタッチ先**: シングルトンGameObject
+- **備考**: Register/Unregister、UpdateUnitCellでユニット登録と位置更新を管理
+
+---
+
+## ユニット 移動制御
+
+### GridAgent
+- **ファイル名**: `Battle/Units/Grid/GridAgent.cs`
+- **主要機能**: セル座標管理、MapManagerとの同期、占有予約
+- **呼び出し元**: UnitMotor、UnitPathAgent、UnitTargeting
+- **アタッチ先**: ユニットGameObject
+- **備考**: ワールド⇔セル座標変換、TryReserveでセル占有を管理
+
+### UnitMotor
+- **ファイル名**: `Battle/Units/Control/UnitMotor.cs`
+- **主要機能**: リアルタイム位置補間、目標座標への移動
+- **呼び出し元**: UnitPathAgent
+- **アタッチ先**: ユニットGameObject
+- **備考**: MoveTowardsメソッドで目標までスムーズ移動、到達判定も担当
+
+### UnitPathAgent
+- **ファイル名**: `Battle/Units/Control/UnitPathAgent.cs`
+- **主要機能**: A*経路探索結果をMotorへ供給、ウェイポイント追従
+- **呼び出し元**: CommandController、UnitAttackAgent
+- **アタッチ先**: ユニットGameObject
+- **備考**: SetDestinationで目標設定、AStarPathfinderを利用
+
+### AStarPathfinder
+- **ファイル名**: `Battle/AIPath/AStarPathfinder.cs`
+- **主要機能**: タイルグリッド上のA*経路探索
+- **呼び出し元**: UnitPathAgent
+- **アタッチ先**: シーン内の任意のGameObject（通常1つ）
+- **備考**: 4方向・8方向移動切り替え、角抜け防止対応、マンハッタン/ユークリッド/オクタイルヒューリスティック選択可能
+
+---
+
+## ユニット 戦闘制御
+
+### WeaponController
+- **ファイル名**: `Battle/Units/Control/WeaponController.cs`
+- **主要機能**: 射撃制御、自動射撃レート制限、射程・LoSチェック
+- **呼び出し元**: UnitAttackAgent、CombatResolver
+- **アタッチ先**: ユニットGameObject
+- **備考**: Updateで射撃タイミング管理、CombatResolverにRequestHitScan呼び出し
+
+### UnitTargeting
+- **ファイル名**: `Battle/Units/Control/UnitTargeting.cs`
+- **主要機能**: 射撃ターゲット自動選択、優先ターゲット管理
+- **呼び出し元**: WeaponController、AttackCommandBridge
+- **アタッチ先**: ユニットGameObject
+- **備考**: Currentプロパティで現在ターゲット取得、SetPriorityTargetで優先指定
+
+### UnitAttackAgent
+- **ファイル名**: `Battle/Effects/UnitAttackAgent.cs`
+- **主要機能**: 攻撃命令状態管理、射程外なら接近、射程内かつLoSありなら発砲
+- **呼び出し元**: なし（ユーザーコマンド経由で動作）
+- **アタッチ先**: ユニットGameObject
+- **備考**: SetTargetでターゲット設定、自動で接近・射撃を制御
+
+### UnitPerception
+- **ファイル名**: `Battle/Units/UnitPerception.cs`
+- **主要機能**: 視界内の敵ユニット収集、LoSManager経由での可視チェック
+- **呼び出し元**: （現在未使用、拡張用）
+- **アタッチ先**: ユニットGameObject
+- **備考**: VisibleEnemiesプロパティで可視敵リストを提供
+
+---
+
+## 戦闘解決システム
+
+### CombatResolver
+- **ファイル名**: `Battle/Combat/CombatResolver.cs`
+- **主要機能**: ヒットスキャン命中判定、ダメージ計算、イベント発火
+- **呼び出し元**: WeaponController
+- **アタッチ先**: シングルトンGameObject
+- **備考**: RequestHitScanでシューティング解決、OnShot/OnHit/OnMissイベント提供
+
+### CombatantStatus
+- **ファイル名**: `Battle/Combat/CombatantStatus.cs`
+- **主要機能**: HP・気絶値・ステータス効果管理、死亡・気絶判定
+- **呼び出し元**: CombatResolver、StatusEffect各種、UnitFactory
+- **アタッチ先**: ユニットGameObject
+- **備考**: ApplyDamage、AddStun、AddOrStackEffectでステータス変更、OnDeath/OnKO/OnReviveイベント
+
+### IStatusEffect（インターフェース）
+- **ファイル名**: `Battle/Effects/StatusEffects/IStatusEffect.cs`
+- **主要機能**: ステータス効果の基本契約
+- **呼び出し元**: なし（実装先として機能）
+- **アタッチ先**: なし
+- **備考**: Id、IsExpired、OnApply、OnTick、OnStack、OnRemoveメソッド定義
+
+### BleedEffect
+- **ファイル名**: `Battle/Effects/StatusEffects/BleedEffect.cs`
+- **主要機能**: 出血デバフ、毎秒HP減少と失血への変換
+- **呼び出し元**: WeaponEffectApplier、StatusEffectFactory
+- **アタッチ先**: なし（CombatantStatusが内部保持）
+- **備考**: 出血量に応じてダメージ、HemorrhageEffectへ徐々に変換
+
+### HemorrhageEffect
+- **ファイル名**: `Battle/Effects/StatusEffects/HemorrhageEffect.cs`
+- **主要機能**: 失血デバフ、毎秒気絶値上昇
+- **呼び出し元**: BleedEffect、WeaponEffectApplier、StatusEffectFactory
+- **アタッチ先**: なし（CombatantStatusが内部保持）
+- **備考**: 失血量に応じて気絶値増加
+
+### StatusEffectFactory
+- **ファイル名**: `Battle/Effects/StatusEffectFactory.cs`
+- **主要機能**: 効果ID文字列からIStatusEffectインスタンス生成
+- **呼び出し元**: WeaponEffectApplier
+- **アタッチ先**: なし（静的メソッド）
+- **備考**: Createメソッドで"Bleed"、"Hemorrhage"などをインスタンス化
+
+### WeaponEffectApplier
+- **ファイル名**: `Battle/Effects/WeaponEffectApplier.cs`
+- **主要機能**: CombatResolver.OnHitイベントを受けて武器効果を適用
+- **呼び出し元**: なし（イベント購読）
+- **アタッチ先**: シーン内の任意のGameObject（通常1つ）
+- **備考**: Resolver再生成に耐える再購読ロジック搭載
+
+---
+
+## ScriptableObject データ定義
+
+### WeaponStatsSO
+- **ファイル名**: `Battle/Combat/WeaponStatsSO.cs`
+- **主要機能**: 武器ステータス定義（射撃レート、射程、ダメージ、命中率、クリティカル）
+- **呼び出し元**: WeaponController、UnitFactory、UnitLoadout
+- **アタッチ先**: なし（ScriptableObject）
+- **備考**: CreateAssetMenu "Game/WeaponStats"で生成
+
+### WeaponEffectsSO
+- **ファイル名**: `Battle/Effects/StatusEffects/WeaponEffects/WeaponEffectsSO.cs`
+- **主要機能**: 武器命中時効果リスト定義
+- **呼び出し元**: WeaponController、WeaponEffectApplier、UnitFactory
+- **アタッチ先**: なし（ScriptableObject）
+- **備考**: CreateAssetMenu "Game/WeaponEffects"で生成、EffectSpec構造体で効果ID・量・持続・確率を定義
+
+### EquipmentSO
+- **ファイル名**: `Battle/EquipmentSO.cs`
+- **主要機能**: 装備ステータスボーナス定義（HP、ダメージ、射撃レート）
+- **呼び出し元**: UnitFactory、UnitLoadout
+- **アタッチ先**: なし（ScriptableObject）
+- **備考**: CreateAssetMenu "Game/Equipment"で生成
+
+### UnitArchetypeSO
+- **ファイル名**: `Battle/Units/Data/UnitArchetypeSO.cs`
+- **主要機能**: ユニット種別定義（表示名、プレハブ、基礎HP・ダメージ・射撃レート）
+- **呼び出し元**: UnitFactory、UnitLoadout
+- **アタッチ先**: なし（ScriptableObject）
+- **備考**: CreateAssetMenu "Game/UnitArchetype"で生成
+
+### UnitLoadout（クラス）
+- **ファイル名**: `Battle/UnitLoadout.cs`
+- **主要機能**: 編成用ユニット設定データ（名前、陣営、種別、装備、武器）
+- **呼び出し元**: RosterManager、BattleSpawner、UnitFactory
+- **アタッチ先**: なし（シリアライズ可能クラス）
+- **備考**: シーン跨ぎ保持可能、戦闘時にUnitFactoryで実体化
+
+---
+
+## ユニット 生成・編成管理
+
+### UnitFactory
+- **ファイル名**: `Battle/Units/Build/UnitFactory.cs`
+- **主要機能**: UnitLoadoutから実際のGameObject生成、装備・武器・ステータス初期化
+- **呼び出し元**: BattleSpawner
+- **アタッチ先**: シーン内の任意のGameObject（通常1つ）
+- **備考**: Createメソッドで生成、スポーン位置安全性チェック、UnitDirectoryへ登録
+
+### RosterManager
+- **ファイル名**: `Battle/Units/Build/RosterManager.cs`
+- **主要機能**: 編成データ保持・管理、シングルトン
+- **呼び出し元**: BattleSpawner、AutoDummyRosterSetup
+- **アタッチ先**: シングルトンGameObject（DontDestroyOnLoad）
+- **備考**: Add/Remove、GetByFaction、rosterリスト
+
+### BattleSpawner
+- **ファイル名**: `Battle/Units/Build/BattleSpawner.cs`
+- **主要機能**: 戦闘開始時に編成をマップへ配置
+- **呼び出し元**: なし（Startで自動実行）
+- **アタッチ先**: シーン内の任意のGameObject
+- **備考**: allySpawns/enemySpawnsリストにスポーン地点指定、factoryを使用
+
+### AutoDummyRosterSetup
+- **ファイル名**: `Battle/AutoDummyRosterSetup.cs`
+- **主要機能**: 完全自動のダミー編成セットアップ、アーキタイプ・装備・武器をランタイム生成
+- **呼び出し元**: なし（Startで自動実行）
+- **アタッチ先**: シーン内の任意のGameObject
+- **備考**: allyCount/enemyCountで数指定、RosterManagerへ編成投入
+
+---
+
+## マップ・環境管理
+
+### MapManager
+- **ファイル名**: `Battle/Map/MapManager.cs`
+- **主要機能**: Tilemap管理（床・壁）、通行可否判定、ワールド⇔セル座標変換
+- **呼び出し元**: GridAgent、AStarPathfinder、LoSManager、UnitDirectory
+- **アタッチ先**: シングルトンGameObject（Tilemapを子に持つ）
+- **備考**: IsPassable、IsBlocked、WorldToCell、CellToWorldCenter、MapVersionとOnMapChangedイベント
+
+### LoSManager
+- **ファイル名**: `Battle/Map/LoSManager.cs`
+- **主要機能**: タイルベースのLoS（視線）判定、結果キャッシュ
+- **呼び出し元**: WeaponController、UnitTargeting、UnitPerception、UnitAttackAgent
+- **アタッチ先**: シングルトンGameObject
+- **備考**: CanSeeCells、CanSeeWorld、MapManager.OnMapChanged購読でキャッシュ無効化
+
+---
+
+## 入力・UI制御
+
+### SelectionManager
+- **ファイル名**: `Battle/InputUI/Selection/SelectionManager.cs`
+- **主要機能**: クリック・ドラッグでユニット選択、Shift加算選択
+- **呼び出し元**: CommandController、AttackCommandBridge
+- **アタッチ先**: シーン内の任意のGameObject（通常1つ）
+- **備考**: Currentプロパティで選択中ユニット一覧、ClickSelect、BoxSelect
+
+### Selectable
+- **ファイル名**: `Battle/InputUI/Selection/Selectable.cs`
+- **主要機能**: 選択対象マーカー、ハイライト表示切り替え
+- **呼び出し元**: SelectionManager
+- **アタッチ先**: ユニットGameObject
+- **備考**: IsSelectedプロパティ、SetSelectedでハイライト表示制御
+
+### CommandController
+- **ファイル名**: `Battle/InputUI/Selection/CommandController.cs`
+- **主要機能**: 右クリックで選択ユニットへ移動命令送信、フォーメーション配置
+- **呼び出し元**: なし（Updateで入力監視）
+- **アタッチ先**: シーン内の任意のGameObject
+- **備考**: OnRightClickUnitイベント、複数選択時は周辺セルへ分散配置
+
+### AttackCommandBridge
+- **ファイル名**: `Battle/Effects/AttackCommandBridge.cs`
+- **主要機能**: CommandControllerのOnRightClickUnitを受けて攻撃命令配信
+- **呼び出し元**: なし（イベント購読）
+- **アタッチ先**: シーン内の任意のGameObject
+- **備考**: SelectionManagerとCommandControllerの橋渡し
+
+---
+
+## ビジュアル・VFX
+
+### CombatVFXBridge
+- **ファイル名**: `Battle/Visual/CombatVFXBridge.cs`
+- **主要機能**: CombatResolverイベント受信してVFX生成（トレーサー、マズルフラッシュ、着弾）
+- **呼び出し元**: なし（イベント購読）
+- **アタッチ先**: シーン内の任意のGameObject
+- **備考**: tracerPrefab、muzzleFlashPrefab、impactFlashPrefabを設定
+
+### Tracer
+- **ファイル名**: `Battle/Visual/Tracer.cs`
+- **主要機能**: トレーサー移動とフェードアウト、LineRenderer制御
+- **呼び出し元**: CombatVFXBridge
+- **アタッチ先**: トレーサープレハブ
+- **備考**: Launchメソッドで発射開始、速度とライフタイム設定
+
+### SimpleFlash
+- **ファイル名**: `Battle/Visual/SimpleFlash.cs`
+- **主要機能**: 単発フラッシュ演出、SpriteRendererスケール・アルファ減衰
+- **呼び出し元**: CombatVFXBridge
+- **アタッチ先**: フラッシュエフェクトプレハブ
+- **備考**: PlayOnceで再生開始、ランダム回転、自動破棄
+
+---
+
+## UI・デバッグ表示
+
+### CombatStatusTMPUI
+- **ファイル名**: `Battle/InputUI/Debug/CombatStatusTMPUI.cs`
+- **主要機能**: CombatantStatusをTextMeshProで画面上表示、追従
+- **呼び出し元**: なし（自動生成または手動アタッチ）
+- **アタッチ先**: ユニットGameObject
+- **備考**: スクリーン座標追従、labelPrefabとtargetCanvas設定可能
+
+### CombatStatusDebugUI
+- **ファイル名**: `Battle/InputUI/Debug/CombatStatusDebugUI.cs`
+- **主要機能**: CombatantStatusをText（旧UI）で頭上表示
+- **呼び出し元**: なし（手動アタッチ）
+- **アタッチ先**: ユニットGameObject
+- **備考**: worldTextPrefab使用、WorldSpaceCanvas向け
+
+### GameSpeedController
+- **ファイル名**: `Battle/GameSpeedController.cs`
+- **主要機能**: 数字キーとSpaceでゲーム速度切り替え、TMP表示
+- **呼び出し元**: なし（Updateで入力監視）
+- **アタッチ先**: シーン内の任意のGameObject
+- **備考**: 1=0.5x、2=1x、3=2x、Space=0x、labelPrefabとtargetCanvas設定可能
+
+### GameSpeedDebug
+- **ファイル名**: `Battle/Debug/GameSpeedDebug.cs`
+- **主要機能**: キーでGameTime速度切り替えのデバッグ入力
+- **呼び出し元**: なし（Updateで入力監視）
+- **アタッチ先**: シーン内の任意のGameObject
+- **備考**: 0=Pause、1=Normal、2=Slow、3=Fast
+
+---
+
+## 旧実装（互換性用）
+
+### UnitMover
+- **ファイル名**: `Battle/UnitMover.cs`
+- **主要機能**: A*パスファインディングライブラリ直接利用の移動制御
+- **呼び出し元**: Clickhundler
+- **アタッチ先**: ユニットGameObject
+- **備考**: PathfindingライブラリのABPath使用、LineRendererでパス表示、現在は新UnitMotor/UnitPathAgentシステムに移行中
+
+### Clickhundler
+- **ファイル名**: `Battle/Clickhundler.cs`
+- **主要機能**: 左クリック座標取得とUnitMoverへ移動指示
+- **呼び出し元**: なし（Updateで入力監視）
+- **アタッチ先**: シーン内の任意のGameObject
+- **備考**: 初期実装、現在はCommandController/SelectionManagerシステムに移行中
+
+---
+
+## システム連携フロー概要
+
+### ユニット生成フロー
+1. AutoDummyRosterSetup → RosterManager（編成データ登録）
+2. BattleSpawner → UnitFactory → UnitCore + 各種コンポーネント生成
+3. UnitFactory → UnitDirectory.Register（索引登録）
+4. GridAgent.SnapToGrid → MapManager（初期位置設定）
+
+### 移動命令フロー
+1. ユーザー右クリック → CommandController
+2. CommandController → SelectionManager.Current取得
+3. CommandController → UnitPathAgent.SetDestination（各選択ユニット）
+4. UnitPathAgent → AStarPathfinder.FindPath
+5. UnitPathAgent → UnitMotor.MoveTowards（毎フレーム）
+6. UnitMotor到達 → GridAgent.TryReserve → UnitDirectory.UpdateUnitCell
+
+### 攻撃命令フロー
+1. 敵ユニット右クリック → CommandController.OnRightClickUnit
+2. AttackCommandBridge → UnitTargeting.SetPriorityTarget
+3. UnitTargeting.TickSelect → Current更新
+4. WeaponController.Update → ターゲット取得 → LoSManager確認
+5. WeaponController → CombatResolver.RequestHitScan
+6. CombatResolver → 命中判定 → CombatantStatus.ApplyDamage
+7. CombatResolver.OnHit → WeaponEffectApplier → StatusEffectFactory → CombatantStatus.AddOrStackEffect
+8. CombatResolver.OnShot → CombatVFXBridge → Tracer/SimpleFlash生成
+
+### ステータス効果フロー
+1. WeaponEffectApplier → CombatantStatus.AddOrStackEffect（Bleed等）
+2. CombatantStatus.Update（ティック処理）
+3. BleedEffect.OnTick → ApplyDamage + HemorrhageEffect追加
+4. HemorrhageEffect.OnTick → AddStun
+5. CombatantStatus.RecalcStates → 死亡・気絶判定 → イベント発火
+
+---
+
+## 補足
+- すべてのGameTimeBehaviour継承クラスはGameTimeのスケール適用時間を使用
+- シングルトンクラス（GameTime、UnitDirectory、MapManager、LoSManager、CombatResolver等）はAwakeでInstance設定
+- ScriptableObject（WeaponStatsSO、EquipmentSO等）はアセットとして事前作成またはAutoDummyRosterSetupでランタイム生成
+- 新システム（UnitMotor/UnitPathAgent）と旧システム（UnitMover/Clickhundler）が混在、移行中
+

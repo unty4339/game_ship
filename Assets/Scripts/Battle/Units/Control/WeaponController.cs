@@ -25,10 +25,6 @@ public class WeaponController : GameTimeBehaviour
     /// <summary>命中時に発動する効果</summary>
     public WeaponEffectsSO onHitEffects;
 
-    [Header("Control")]
-    /// <summary>自動射撃を許可するかどうか</summary>
-    public bool allowAutoFire = false;
-
     /// <summary>オーバーライドターゲット（手動指定）</summary>
     UnitCore _overrideUnit;
     /// <summary>射撃クールダウン</summary>
@@ -51,32 +47,29 @@ public class WeaponController : GameTimeBehaviour
     /// </summary>
     void Update()
     {
-        // クールダウンを更新
         _cool -= dt;
 
-        // ターゲットを解決
+        // ターゲット解決
         UnitCore tgt = _overrideUnit;
-        var ut = GetComponent<UnitTargeting>();
-        if (tgt == null && ut != null) tgt = ut.Current;
-        
-        // 自動射撃の条件チェック
-        if (!allowAutoFire || tgt == null) return;
+        if (tgt == null)
+        {
+            var ut = GetComponent<UnitTargeting>();
+            if (ut != null) tgt = ut.Current;
+        }
+        if (tgt == null) return; // ターゲットがいなければ撃たない
         if (_cool > 0f) return;
 
-        // グリッド位置を取得
         var myGrid = GetComponent<GridAgent>();
         var tgGrid = tgt != null ? tgt.Grid : null;
         if (myGrid == null || tgGrid == null) return;
 
-        // 射程距離をチェック
+        // 射程とLoS判定
         int d2 = UnitDirectory.SqrCellDistance(myGrid.Cell, tgGrid.Cell);
         float rc = RangeCells;
         if (d2 > rc * rc) return;
-        
-        // 視界をチェック
         if (!LoSManager.Instance.CanSeeCells(myGrid.Cell, tgGrid.Cell)) return;
 
-        // 射撃を実行
+        // 発砲
         _cool = 1f / Mathf.Max(0.01f, FireRate);
         CombatResolver.Instance?.RequestHitScan(gameObject, tgt.gameObject);
     }

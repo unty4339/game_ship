@@ -52,7 +52,7 @@ public class UnitAttackAgent : GameTimeBehaviour
         // 射撃
         _weapon.SetOverrideTarget(_target);
         _weapon.enabled = true;
-        _weapon.allowAutoFire = hasLoS && inRange;
+        // _weapon.allowAutoFire = hasLoS && inRange;
 
         // 位置調整
         _repathT += dt;
