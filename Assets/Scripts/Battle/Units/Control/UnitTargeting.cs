@@ -8,9 +8,10 @@ using UnityEngine;
 /// 3 ターゲットが撃破されたら非選択に戻す
 /// 4 右クリックで優先攻撃ターゲットを指名 射線が通るときのみ選択
 /// </summary>
+[RequireComponent(typeof(UnitCore))]
 [RequireComponent(typeof(GridAgent))]
 [RequireComponent(typeof(FactionTag))]
-public class UnitTargeting : MonoBehaviour
+public class UnitTargeting : GameTimeBehaviour
 {
     [Header("Tick")]
     [Tooltip("選択評価の更新間隔秒")]
@@ -24,15 +25,22 @@ public class UnitTargeting : MonoBehaviour
     public UnitCore Priority { get; private set; }
 
     float _accum;
-    GridAgent _grid;
-    FactionTag _fac;
+    UnitCore _core;
 
     public System.Action<UnitCore> OnTargetChanged;
 
     void Awake()
     {
-        _grid = GetComponent<GridAgent>();
-        _fac = GetComponent<FactionTag>();
+        _core = GetComponent<UnitCore>();
+    }
+
+    void Start()
+    {
+        // Awakeで取得できなかった場合の再試行
+        if (_core == null)
+        {
+            _core = GetComponent<UnitCore>();
+        }
     }
 
     public void SetPriorityTarget(UnitCore enemy)
@@ -46,7 +54,7 @@ public class UnitTargeting : MonoBehaviour
 
     void Update()
     {
-        _accum += Time.deltaTime;
+        _accum += dt;
         if (_accum < tickSec) return;
         _accum = 0f;
 
@@ -55,6 +63,9 @@ public class UnitTargeting : MonoBehaviour
 
     void TickSelect()
     {
+        // UnitCoreが取得できていない場合は処理をスキップ
+        if (_core == null) return;
+
         // 現在ターゲットの存続判定
         if (Current != null)
         {
@@ -90,28 +101,26 @@ public class UnitTargeting : MonoBehaviour
 
     bool IsAlive(UnitCore u)
     {
-        if (u == null) return false;
-        var st = u.GetComponent<CombatantStatus>();
-        return st != null && !st.isDead && st.currentHP > 0;
+        return UnitCore.IsAlive(u);
     }
 
     bool HasLoSTo(UnitCore u)
     {
-        if (u == null || _grid == null || u.Grid == null) return false;
+        if (u == null || _core == null || _core.Grid == null || u.Grid == null) return false;
         // 射程上限はここでは切らず 武器側で別途判定
-        return LoSManager.Instance.CanSeeCells(_grid.Cell, u.Grid.Cell);
+        return LoSManager.Instance.CanSeeCells(_core.Grid.Cell, u.Grid.Cell);
     }
 
     UnitCore FindNearestVisibleEnemy()
     {
         var dir = UnitDirectory.Instance;
-        if (dir == null) return null;
+        if (dir == null || _core == null || _core.Faction == null) return null;
 
-        var myCell = _grid.Cell;
+        var myCell = _core.Grid != null ? _core.Grid.Cell : MapManager.Instance.WorldToCell(_core.transform.position);
         float best = float.PositiveInfinity;
         UnitCore bestU = null;
 
-        foreach (var e in dir.GetEnemiesOf(_fac))
+        foreach (var e in dir.GetEnemiesOf(_core.Faction))
         {
             if (!IsAlive(e)) continue;
             if (e.Grid == null) continue;
@@ -123,6 +132,7 @@ public class UnitTargeting : MonoBehaviour
 
             if (d2 < best) { best = d2; bestU = e; }
         }
+
         return bestU;
     }
 }

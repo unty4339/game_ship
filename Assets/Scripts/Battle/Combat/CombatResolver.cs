@@ -16,32 +16,6 @@ using Random = UnityEngine.Random;
 /// </summary>
 public class CombatResolver : SingletonMonoBehaviour<CombatResolver>
 {
-    [Header("Hit rules")]
-    [Tooltip("基礎命中率 0から1")]
-    [Range(0f, 1f)] public float baseAccuracy = 0.85f;
-
-    [Tooltip("命中率の最小値 近距離でもこの値を下回らない")]
-    [Range(0f, 1f)] public float minAccuracy = 0.15f;
-
-    [Tooltip("命中率の距離減衰を開始するセル距離")]
-    public float falloffStartCells = 6f;
-
-    [Tooltip("命中率が最小値になるセル距離")]
-    public float falloffEndCells = 18f;
-
-    [Header("Damage rules")]
-    [Tooltip("基礎ダメージ")]
-    public int baseDamage = 20;
-
-    [Tooltip("ダメージのランダム揺らぎ係数 例 0.1で±10パーセント")]
-    [Range(0f, 0.5f)] public float damageSpread = 0.1f;
-
-    [Tooltip("クリティカル発生確率 0から1")]
-    [Range(0f, 1f)] public float critChance = 0.1f;
-
-    [Tooltip("クリティカル倍率")]
-    public float critMultiplier = 1.5f;
-
     [Header("Logic options")]
     [Tooltip("フレンドリーファイアを許可するか")]
     public bool allowFriendlyFire = false;
@@ -149,68 +123,6 @@ public class CombatResolver : SingletonMonoBehaviour<CombatResolver>
         return null;
     }
 
-    /// <summary>
-    /// 命中率を距離に応じて計算
-    /// falloffStartCellsからfalloffEndCellsにかけて線形にbaseAccuracyからminAccuracyまで低下
-    /// </summary>
-    public float ComputeAccuracy(float distanceCells)
-    {
-        if (falloffEndCells <= falloffStartCells)
-            return Mathf.Clamp01(baseAccuracy);
-
-        if (distanceCells <= falloffStartCells) return Mathf.Clamp01(baseAccuracy);
-        if (distanceCells >= falloffEndCells) return Mathf.Clamp01(minAccuracy);
-
-        float t = Mathf.InverseLerp(falloffStartCells, falloffEndCells, distanceCells);
-        float acc = Mathf.Lerp(baseAccuracy, minAccuracy, t);
-        return Mathf.Clamp01(acc);
-    }
-
-    /// <summary>
-    /// ダメージ値を計算
-    /// baseDamageに対し±damageSpreadのランダムを適用
-    /// </summary>
-    public int ComputeDamage()
-    {
-        float spread = 1f + UnityEngine.Random.Range(-damageSpread, damageSpread);
-        float raw = baseDamage * spread;
-        return Mathf.Max(1, Mathf.RoundToInt(raw));
-    }
-
-    /// <summary>
-    /// ミスイベントを発火
-    /// </summary>
-    private void EmitMiss(GameObject attacker, GameObject target, Vector3 origin)
-    {
-        OnMiss?.Invoke(new MissEvent
-        {
-            attacker = attacker,
-            target = target,
-            shootOrigin = origin
-        });
-    }
-
-    /// <summary>
-    /// マズル位置の推定
-    /// 子Transformでmuzzleがある場合はそれを優先
-    /// 無い場合は本体位置にオフセットを加算
-    /// </summary>
-    private Vector3 GetMuzzleWorld(GameObject attacker)
-    {
-        var muzzle = attacker.transform.Find("muzzle");
-        if (muzzle != null) return muzzle.position;
-        return attacker.transform.position + muzzleOffset;
-    }
-
-    /// <summary>
-    /// 命中位置の簡易推定
-    /// ターゲット中心を返す
-    /// 必要ならColliderからレイキャストに置き換え
-    /// </summary>
-    private Vector3 EstimateContactPoint(GameObject attacker, GameObject target)
-    {
-        return target.transform.position;
-    }
 
     // 追加 イベント
     public struct ShotEvent
@@ -230,9 +142,6 @@ public class CombatResolver : SingletonMonoBehaviour<CombatResolver>
         public GameObject target;       // 被攻撃者
         public int damage;              // 与ダメージ
         public bool isCritical;         // クリティカル発生
-        public float accuracyUsed;      // 使用した命中率
-        public float distanceCells;     // セル距離
-        public Vector3 shootOrigin;     // 発射位置
         public Vector3 contactPoint;    // 命中位置
     }
 
@@ -243,6 +152,5 @@ public class CombatResolver : SingletonMonoBehaviour<CombatResolver>
     {
         public GameObject attacker;     // 攻撃者
         public GameObject target;       // 対象
-        public Vector3 shootOrigin;     // 発射位置
     }
 }

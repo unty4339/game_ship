@@ -33,8 +33,21 @@ public class UnitCore : MonoBehaviour
     /// <summary>
     /// 戦闘ステータスコンポーネントへの参照
     /// HP、ダメージ、状態異常などの管理を行います
+    /// 遅延初期化に対応（UnitFactoryで後から追加される可能性があるため）
     /// </summary>
-    public CombatantStatus Status { get; private set; }
+    public CombatantStatus Status
+    {
+        get
+        {
+            if (_status == null)
+            {
+                _status = GetComponent<CombatantStatus>();
+            }
+            return _status;
+        }
+        private set => _status = value;
+    }
+    private CombatantStatus _status;
     
     /// <summary>
     /// グリッド位置管理コンポーネントへの参照
@@ -81,12 +94,47 @@ public class UnitCore : MonoBehaviour
     {
         // 各コンポーネントの参照を取得
         Faction = GetComponent<FactionTag>();
-        Status = GetComponent<CombatantStatus>();
+        // Statusは遅延初期化（UnitFactoryで後から追加される可能性があるため）
+        _status = GetComponent<CombatantStatus>();
         Grid = GetComponent<GridAgent>();
         Motor = GetComponent<UnitMotor>();
         Path = GetComponent<UnitPathAgent>();
         Perception = GetComponent<UnitPerception>();
-        Targeting = GetComponent<UnitTargeting>();
+        // TargetingとWeaponはStartで取得（循環参照を避けるため）
         Weapon = GetComponent<WeaponController>();
+    }
+
+    void Start()
+    {
+        // Statusが取得できていない場合は再試行（UnitFactoryで後から追加された場合）
+        if (_status == null)
+        {
+            _status = GetComponent<CombatantStatus>();
+        }
+        
+        // TargetingはStartで取得（UnitTargetingのAwakeが完了していることを保証）
+        if (Targeting == null)
+        {
+            Targeting = GetComponent<UnitTargeting>();
+        }
+    }
+
+    /// <summary>
+    /// ユニットが生存しているかどうかを判定
+    /// </summary>
+    /// <returns>生存している場合はtrue、死亡またはStatusがnullの場合はfalse</returns>
+    public bool IsAlive()
+    {
+        return Status != null && !Status.isDead && Status.currentHP > 0;
+    }
+
+    /// <summary>
+    /// 指定されたユニットが生存しているかどうかを判定（静的メソッド）
+    /// </summary>
+    /// <param name="unit">判定するユニット</param>
+    /// <returns>生存している場合はtrue、死亡またはnullの場合はfalse</returns>
+    public static bool IsAlive(UnitCore unit)
+    {
+        return unit != null && unit.IsAlive();
     }
 }

@@ -37,12 +37,12 @@ public class UnitDirectory : SingletonMonoBehaviour<UnitDirectory>
         _all.Add(unit);
 
         // 陣営
-        int fid = unit.GetComponent<FactionTag>()?.FactionId ?? 0;
+        int fid = unit.Faction != null ? unit.Faction.FactionId : 0;
         if (!_byFaction.TryGetValue(fid, out var setF)) { setF = new HashSet<UnitCore>(); _byFaction[fid] = setF; }
         setF.Add(unit);
 
         // セル
-        var cell = unit.GetComponent<GridAgent>()?.Cell ?? MapManager.Instance.WorldToCell(unit.transform.position);
+        var cell = unit.Grid != null ? unit.Grid.Cell : MapManager.Instance.WorldToCell(unit.transform.position);
         AddToCellIndex(unit, cell);
     }
 
@@ -55,10 +55,10 @@ public class UnitDirectory : SingletonMonoBehaviour<UnitDirectory>
         if (unit == null) return;
         if (!_all.Remove(unit)) return;
 
-        int fid = unit.GetComponent<FactionTag>()?.FactionId ?? 0;
+        int fid = unit.Faction != null ? unit.Faction.FactionId : 0;
         if (_byFaction.TryGetValue(fid, out var setF)) setF.Remove(unit);
 
-        var cell = unit.GetComponent<GridAgent>()?.Cell ?? MapManager.Instance.WorldToCell(unit.transform.position);
+        var cell = unit.Grid != null ? unit.Grid.Cell : MapManager.Instance.WorldToCell(unit.transform.position);
         RemoveFromCellIndex(unit, cell);
     }
 
@@ -134,8 +134,8 @@ public class UnitDirectory : SingletonMonoBehaviour<UnitDirectory>
     {
         if (seeker == null) return null;
 
-        var myFaction = seeker.GetComponent<FactionTag>()?.FactionId ?? 0;
-        var myCell = seeker.GetComponent<GridAgent>()?.Cell ?? MapManager.Instance.WorldToCell(seeker.transform.position);
+        var myFaction = seeker.Faction != null ? seeker.Faction.FactionId : 0;
+        var myCell = seeker.Grid != null ? seeker.Grid.Cell : MapManager.Instance.WorldToCell(seeker.transform.position);
 
         float bestSqr = float.PositiveInfinity;
         UnitCore best = null;
@@ -145,7 +145,7 @@ public class UnitDirectory : SingletonMonoBehaviour<UnitDirectory>
             if (kv.Key == myFaction) continue;
             foreach (var e in kv.Value)
             {
-                var ec = e.GetComponent<GridAgent>()?.Cell ?? MapManager.Instance.WorldToCell(e.transform.position);
+                var ec = e.Grid != null ? e.Grid.Cell : MapManager.Instance.WorldToCell(e.transform.position);
                 int d2 = SqrCellDistance(myCell, ec);
                 if (maxRangeCells >= 0 && d2 > maxRangeCells * maxRangeCells) continue;
                 if (d2 < bestSqr) { bestSqr = d2; best = e; }

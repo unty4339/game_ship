@@ -46,6 +46,13 @@ public class WeaponController : GameTimeBehaviour
     UnitCore _overrideUnit;
     /// <summary>射撃クールダウン</summary>
     float _cool;
+    /// <summary>UnitCoreへの参照（キャッシュ）</summary>
+    UnitCore _core;
+
+    void Awake()
+    {
+        _core = GetComponent<UnitCore>();
+    }
 
     /// <summary>
     /// オーバーライドターゲットを設定
@@ -91,18 +98,21 @@ public class WeaponController : GameTimeBehaviour
     {
         _cool -= dt;
 
+        // UnitCoreが取得できていない場合は再試行
+        if (_core == null) _core = GetComponent<UnitCore>();
+        if (_core == null) return;
+
         // ターゲット解決
         UnitCore tgt = _overrideUnit;
-        if (tgt == null)
+        if (tgt == null && _core.Targeting != null)
         {
-            var ut = GetComponent<UnitTargeting>();
-            if (ut != null) tgt = ut.Current;
+            tgt = _core.Targeting.Current;
         }
         if (tgt == null) return; // ターゲットがいなければ撃たない
         if (_cool > 0f) return;
 
-        var myGrid = GetComponent<GridAgent>();
-        var tgGrid = tgt != null ? tgt.Grid : null;
+        var myGrid = _core.Grid;
+        var tgGrid = tgt.Grid;
         if (myGrid == null || tgGrid == null) return;
 
         // 射程とLoS判定

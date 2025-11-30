@@ -15,15 +15,17 @@ public class UnitAttackAgent : GameTimeBehaviour
     float _repathT;
 
     UnitCore _target;
+    UnitCore _core;
     UnitPathAgent _path;
     GridAgent _grid;
     WeaponController _weapon;
 
     void Awake()
     {
-        _path = GetComponent<UnitPathAgent>();
-        _grid = GetComponent<GridAgent>();
-        _weapon = GetComponent<WeaponController>();
+        _core = GetComponent<UnitCore>();
+        _path = _core != null ? _core.Path : GetComponent<UnitPathAgent>();
+        _grid = _core != null ? _core.Grid : GetComponent<GridAgent>();
+        _weapon = _core != null ? _core.Weapon : GetComponent<WeaponController>();
     }
 
     public void SetTarget(UnitCore target)
@@ -35,11 +37,9 @@ public class UnitAttackAgent : GameTimeBehaviour
     void Update()
     {
         if (_target == null) return;
-        {
-            var st = _target.GetComponent<CombatantStatus>();
-            if (st == null || st.isDead || st.currentHP <= 0) { _target = null; return; }
-        }
-        var myCell = _grid.Cell;
+        if (!UnitCore.IsAlive(_target)) { _target = null; return; }
+        
+        var myCell = _grid != null ? _grid.Cell : MapManager.Instance.WorldToCell(_core.transform.position);
         var tgtCell = _target.Grid != null ? _target.Grid.Cell : MapManager.Instance.WorldToCell(_target.transform.position);
 
         // 射程チェック
