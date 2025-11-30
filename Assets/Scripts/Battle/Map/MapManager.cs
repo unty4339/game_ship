@@ -8,11 +8,8 @@ using UnityEngine.Tilemaps;
 /// 通行可否や遮蔽判定 タイルの配置と除去 ワールドとセルの座標変換
 /// マップ更新バージョンとイベント通知を提供
 /// </summary>
-public class MapManager : MonoBehaviour
+public class MapManager : SingletonMonoBehaviour<MapManager>
 {
-    /// <summary>シングルトン参照</summary>
-    public static MapManager Instance { get; private set; }
-
     [Header("Tilemaps")]
     [SerializeField] private Tilemap floorMap;  // 床用
     [SerializeField] private Tilemap wallMap;   // 壁や遮蔽用
@@ -33,17 +30,6 @@ public class MapManager : MonoBehaviour
     /// タイルの配置や除去 オプション変更時に通知
     /// </summary>
     public event Action OnMapChanged;
-
-    void Awake()
-    {
-        if (Instance != null && Instance != this)
-        {
-            Debug.LogWarning("Multiple MapManager instances detected Destroying this one");
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-    }
 
     /// <summary>
     /// 指定セルが通行可能かを返す

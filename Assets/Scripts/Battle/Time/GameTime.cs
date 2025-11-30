@@ -4,10 +4,8 @@ using UnityEngine;
 /// ゲーム内の時間スケールを管理
 /// Delta はスケール適用 Unscaled は非適用
 /// </summary>
-public class GameTime : MonoBehaviour
+public class GameTime : SingletonMonoBehaviour<GameTime>
 {
-    public static GameTime Instance { get; private set; }
-
     [Range(0f, 4f)] public float timeScale = 1f;
     public bool paused => Mathf.Approximately(timeScale, 0f);
 
@@ -17,11 +15,12 @@ public class GameTime : MonoBehaviour
     public static float Delta => Instance != null ? Instance._delta : Time.deltaTime;
     public static float Unscaled => Instance != null ? Instance._unscaled : Time.unscaledDeltaTime;
 
-    void Awake()
+    protected override bool ShouldPersistAcrossScenes => true;
+    protected override bool ShowDuplicateWarning => false;
+
+    protected override void OnAwake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+        // 基底クラスでDontDestroyOnLoadが設定される
     }
 
     void Update()

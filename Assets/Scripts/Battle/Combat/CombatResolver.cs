@@ -14,11 +14,8 @@ using Random = UnityEngine.Random;
 ///   CombatResolver.Instance.OnHit += e => SpawnHitEffect(e.contactPoint)
 ///   CombatResolver.Instance.OnMiss += e => SpawnMissEffect(e.shootOrigin)
 /// </summary>
-public class CombatResolver : MonoBehaviour
+public class CombatResolver : SingletonMonoBehaviour<CombatResolver>
 {
-    /// <summary>シングルトン参照</summary>
-    public static CombatResolver Instance { get; private set; }
-
     [Header("Hit rules")]
     [Tooltip("基礎命中率 0から1")]
     [Range(0f, 1f)] public float baseAccuracy = 0.85f;
@@ -67,17 +64,6 @@ public class CombatResolver : MonoBehaviour
 
     /// <summary>ミスイベント</summary>
     public event Action<MissEvent> OnMiss;
-
-    void Awake()
-    {
-        if (Instance != null && Instance != this)
-        {
-            Debug.LogWarning("Multiple CombatResolver instances detected Destroying this one");
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-    }
 
     /// <summary>
     /// ヒットスキャンの解決を要求
@@ -135,11 +121,11 @@ public class CombatResolver : MonoBehaviour
         contactPoint = GetColliderCenter(target) ?? target.transform.position;
 
         var wc = attacker.GetComponent<WeaponController>();
-        float acc = wc != null ? wc.GetAccuracy() : 0.7f;
-        int dmin = wc != null ? wc.GetDamageMin() : 5;
-        int dmax = wc != null ? wc.GetDamageMax() : 12;
-        float cRate = wc != null ? wc.GetCritChance() : 0.1f;
-        float cMul  = wc != null ? wc.GetCritMultiplier() : 1.5f;
+        float acc = wc != null ? wc.Accuracy : 0.7f;
+        int dmin = wc != null ? wc.DamageMin : 5;
+        int dmax = wc != null ? wc.DamageMax : 12;
+        float cRate = wc != null ? wc.CritChance : 0.1f;
+        float cMul  = wc != null ? wc.CritMultiplier : 1.5f;
 
         bool hit = Random.value < acc;
         if (!hit) return false;

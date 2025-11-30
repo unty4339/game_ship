@@ -21,11 +21,8 @@ using UnityEngine;
 /// 距離や視野角のしきい値はSetMaxRangeCellsやSetFovCosで設定可能
 /// </summary>
 
-public class LoSManager : MonoBehaviour
+public class LoSManager : SingletonMonoBehaviour<LoSManager>
 {
-    /// <summary>シングルトン参照</summary>
-    public static LoSManager Instance { get; private set; }
-
     [Header("Broad phase options")]
     [Tooltip("セル距離の最大有効範囲 負値で無制限")]
     [SerializeField] private float maxRangeCells = -1f;
@@ -57,17 +54,6 @@ public class LoSManager : MonoBehaviour
 
     /// <summary>LoS結果キャッシュ trueで可視 falseで遮蔽</summary>
     private readonly Dictionary<CacheKey, bool> _cache = new();
-
-    void Awake()
-    {
-        if (Instance != null && Instance != this)
-        {
-            Debug.LogWarning("Multiple LoSManager instances detected Destroying this one");
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-    }
 
     void OnEnable()
     {

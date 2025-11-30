@@ -17,6 +17,23 @@ using UnityEngine;
 /// </summary>
 public class WeaponController : GameTimeBehaviour
 {
+    #region Default Values
+    /// <summary>デフォルトの射撃レート（秒間発射数）</summary>
+    private const float DEFAULT_FIRE_RATE = 4f;
+    /// <summary>デフォルトの射程距離（セル単位）</summary>
+    private const float DEFAULT_RANGE_CELLS = 12f;
+    /// <summary>デフォルトの命中率（0-1）</summary>
+    private const float DEFAULT_ACCURACY = 0.7f;
+    /// <summary>デフォルトの最小ダメージ</summary>
+    private const int DEFAULT_DAMAGE_MIN = 5;
+    /// <summary>デフォルトの最大ダメージ</summary>
+    private const int DEFAULT_DAMAGE_MAX = 12;
+    /// <summary>デフォルトのクリティカル発生率（0-1）</summary>
+    private const float DEFAULT_CRIT_CHANCE = 0.1f;
+    /// <summary>デフォルトのクリティカル倍率</summary>
+    private const float DEFAULT_CRIT_MULTIPLIER = 1.5f;
+    #endregion
+
     [Header("Stats")]
     /// <summary>武器のステータスデータ</summary>
     public WeaponStatsSO stats;
@@ -37,9 +54,34 @@ public class WeaponController : GameTimeBehaviour
     public void SetOverrideTarget(UnitCore tgt) => _overrideUnit = tgt;
 
     /// <summary>射撃レート（秒間発射数）</summary>
-    public float FireRate => stats != null ? stats.fireRate : 4f;
+    public float FireRate => GetStatValue(s => s.fireRate, DEFAULT_FIRE_RATE);
+    
     /// <summary>射程距離（セル単位）</summary>
-    public float RangeCells => stats != null ? stats.rangeCells : 12f;
+    public float RangeCells => GetStatValue(s => s.rangeCells, DEFAULT_RANGE_CELLS);
+    
+    /// <summary>命中率（0-1）</summary>
+    public float Accuracy => GetStatValue(s => Mathf.Clamp01(s.baseAccuracy), DEFAULT_ACCURACY);
+    
+    /// <summary>最小ダメージ</summary>
+    public int DamageMin => GetStatValue(s => s.damageMin, DEFAULT_DAMAGE_MIN);
+    
+    /// <summary>最大ダメージ</summary>
+    public int DamageMax => GetStatValue(s => s.damageMax, DEFAULT_DAMAGE_MAX);
+    
+    /// <summary>クリティカル発生率（0-1）</summary>
+    public float CritChance => GetStatValue(s => Mathf.Clamp01(s.critChance), DEFAULT_CRIT_CHANCE);
+    
+    /// <summary>クリティカル倍率</summary>
+    public float CritMultiplier => GetStatValue(s => Mathf.Max(1f, s.critMultiplier), DEFAULT_CRIT_MULTIPLIER);
+
+    /// <summary>
+    /// 武器ステータスから値を取得するヘルパーメソッド
+    /// statsがnullの場合はデフォルト値を返す
+    /// </summary>
+    private T GetStatValue<T>(System.Func<WeaponStatsSO, T> getter, T defaultValue)
+    {
+        return stats != null ? getter(stats) : defaultValue;
+    }
 
     /// <summary>
     /// 毎フレームの更新処理
@@ -74,26 +116,6 @@ public class WeaponController : GameTimeBehaviour
         CombatResolver.Instance?.RequestHitScan(gameObject, tgt.gameObject);
     }
 
-    /// <summary>命中率を取得</summary>
-    /// <returns>命中率（0-1）</returns>
-    public float GetAccuracy() => stats != null ? Mathf.Clamp01(stats.baseAccuracy) : 0.7f;
-    
-    /// <summary>最小ダメージを取得</summary>
-    /// <returns>最小ダメージ値</returns>
-    public int GetDamageMin() => stats != null ? stats.damageMin : 5;
-    
-    /// <summary>最大ダメージを取得</summary>
-    /// <returns>最大ダメージ値</returns>
-    public int GetDamageMax() => stats != null ? stats.damageMax : 12;
-    
-    /// <summary>クリティカル発生率を取得</summary>
-    /// <returns>クリティカル発生率（0-1）</returns>
-    public float GetCritChance() => stats != null ? Mathf.Clamp01(stats.critChance) : 0.1f;
-    
-    /// <summary>クリティカル倍率を取得</summary>
-    /// <returns>クリティカル倍率</returns>
-    public float GetCritMultiplier() => stats != null ? Mathf.Max(1f, stats.critMultiplier) : 1.5f;
-
     /// <summary>
     /// 新しい武器を装備する
     /// </summary>
@@ -103,4 +125,31 @@ public class WeaponController : GameTimeBehaviour
         stats = newStats;
         _cool = 0f; // 装備時にクールダウンをリセット
     }
+
+    #region Legacy Getters (後方互換性のため)
+    /// <summary>命中率を取得（後方互換性のため、Accuracyプロパティを使用してください）</summary>
+    /// <returns>命中率（0-1）</returns>
+    [System.Obsolete("Accuracyプロパティを使用してください")]
+    public float GetAccuracy() => Accuracy;
+    
+    /// <summary>最小ダメージを取得（後方互換性のため、DamageMinプロパティを使用してください）</summary>
+    /// <returns>最小ダメージ値</returns>
+    [System.Obsolete("DamageMinプロパティを使用してください")]
+    public int GetDamageMin() => DamageMin;
+    
+    /// <summary>最大ダメージを取得（後方互換性のため、DamageMaxプロパティを使用してください）</summary>
+    /// <returns>最大ダメージ値</returns>
+    [System.Obsolete("DamageMaxプロパティを使用してください")]
+    public int GetDamageMax() => DamageMax;
+    
+    /// <summary>クリティカル発生率を取得（後方互換性のため、CritChanceプロパティを使用してください）</summary>
+    /// <returns>クリティカル発生率（0-1）</returns>
+    [System.Obsolete("CritChanceプロパティを使用してください")]
+    public float GetCritChance() => CritChance;
+    
+    /// <summary>クリティカル倍率を取得（後方互換性のため、CritMultiplierプロパティを使用してください）</summary>
+    /// <returns>クリティカル倍率</returns>
+    [System.Obsolete("CritMultiplierプロパティを使用してください")]
+    public float GetCritMultiplier() => CritMultiplier;
+    #endregion
 }

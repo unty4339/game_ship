@@ -5,10 +5,8 @@ using UnityEngine;
 /// クリックとドラッグでユニットを選択するマネージャ
 /// 左クリックで単体選択 ドラッグで矩形選択 Shiftで加算選択
 /// </summary>
-public class SelectionManager : MonoBehaviour
+public class SelectionManager : SingletonMonoBehaviour<SelectionManager>
 {
-    public static SelectionManager Instance { get; private set; }
-
     /// <summary>現在選択中のユニット集合</summary>
     public HashSet<Selectable> Current = new HashSet<Selectable>();
 
@@ -20,11 +18,7 @@ public class SelectionManager : MonoBehaviour
     Vector2 _dragStart;
     bool _dragging;
 
-    void Awake()
-    {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-    }
+    protected override bool ShowDuplicateWarning => false;
 
     void Update()
     {

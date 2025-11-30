@@ -14,11 +14,8 @@ using UnityEngine;
 ///   var enemies = UnitDirectory.Instance.GetEnemiesOf(faction)   // 敵ユニット列を取得
 ///   var e = UnitDirectory.Instance.FindNearestEnemy(myCore, 12)  // 射程セル12で最も近い敵
 /// </summary>
-public class UnitDirectory : MonoBehaviour
+public class UnitDirectory : SingletonMonoBehaviour<UnitDirectory>
 {
-    /// <summary>シングルトン参照</summary>
-    public static UnitDirectory Instance { get; private set; }
-
     /// <summary>全ユニット集合</summary>
     private readonly HashSet<UnitCore> _all = new HashSet<UnitCore>();
 
@@ -27,17 +24,6 @@ public class UnitDirectory : MonoBehaviour
 
     /// <summary>セル座標ごとの集合 近傍検索の高速化に使用</summary>
     private readonly Dictionary<Vector3Int, HashSet<UnitCore>> _cellIndex = new Dictionary<Vector3Int, HashSet<UnitCore>>();
-
-    void Awake()
-    {
-        if (Instance != null && Instance != this)
-        {
-            Debug.LogWarning("Multiple UnitDirectory instances detected Destroying this one");
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-    }
 
     /// <summary>
     /// ユニットを登録

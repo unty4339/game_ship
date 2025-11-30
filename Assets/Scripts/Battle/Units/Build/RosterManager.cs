@@ -15,39 +15,16 @@ using UnityEngine;
 /// - 戦闘中にユニットの追加・削除
 /// - 陣営別のユニット一覧取得
 /// </summary>
-public class RosterManager : MonoBehaviour
+public class RosterManager : SingletonMonoBehaviour<RosterManager>
 {
-    /// <summary>
-    /// シングルトン参照
-    /// 他のスクリプトから編成データにアクセスする際に使用
-    /// </summary>
-    public static RosterManager Instance { get; private set; }
-
     /// <summary>
     /// 現在の編成リスト
     /// 全てのユニットの装備・ステータス情報を保持
     /// </summary>
     public List<UnitLoadout> roster = new List<UnitLoadout>();
 
-    /// <summary>
-    /// 初期化処理
-    /// シングルトンパターンの実装と永続化設定
-    /// </summary>
-    void Awake()
-    {
-        // 既存のインスタンスがある場合は破棄
-        if (Instance != null && Instance != this) 
-        { 
-            Destroy(gameObject); 
-            return; 
-        }
-        
-        // シングルトンインスタンスを設定
-        Instance = this;
-        
-        // シーン遷移後も保持
-        DontDestroyOnLoad(gameObject);
-    }
+    protected override bool ShouldPersistAcrossScenes => true;
+    protected override bool ShowDuplicateWarning => false;
 
     /// <summary>
     /// 編成にユニットを追加
