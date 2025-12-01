@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using TMPro;
 
 /// <summary>
@@ -23,6 +24,15 @@ public class UnitFactory : MonoBehaviour
     public Canvas hudCanvas;
     /// <summary>ステータス表示用のラベルプレハブ</summary>
     public TextMeshProUGUI statusLabelPrefab;
+
+    [Header("UnitInfoUI")]
+    /// <summary>簡易情報ウィンドウのPrefab（マウスオーバー時に表示）</summary>
+    [Tooltip("簡易情報ウィンドウのPrefab（マウスオーバー時に表示）")]
+    public GameObject simpleInfoWindowPrefab;
+
+    /// <summary>詳細情報ウィンドウのPrefab（右クリック時に表示）</summary>
+    [Tooltip("詳細情報ウィンドウのPrefab（右クリック時に表示）")]
+    public GameObject detailedInfoWindowPrefab;
 
     [Header("Combat Effects")]
     /// <summary>デフォルトの命中時効果</summary>
@@ -80,26 +90,93 @@ public class UnitFactory : MonoBehaviour
         // 陣営IDを設定
         if (faction != null) faction.FactionId = loadout.factionId;
 
+        // UnitInventoryを取得または作成
+        var inventory = go.GetComponent<UnitInventory>();
+        if (inventory == null) inventory = go.AddComponent<UnitInventory>();
+
+        // 新しい装備システムでインベントリを初期化
+        if (loadout.mainWeapon != null)
+        {
+            inventory.mainWeapon = loadout.mainWeapon;
+            // WeaponItemSOからWeaponStatsSOを取得してWeaponControllerに設定
+            if (weapon != null && loadout.mainWeapon.weaponStats != null)
+            {
+                weapon.Equip(loadout.mainWeapon.weaponStats);
+            }
+        }
+        else if (loadout.weaponStats != null)
+        {
+            // 後方互換性: weaponStatsからWeaponItemSOを作成（ランタイムでは作成できないため、警告を出す）
+            Debug.LogWarning($"Loadout for {go.name} uses legacy weaponStats. Consider using WeaponItemSO instead.");
+            if (weapon != null)
+            {
+                weapon.Equip(loadout.weaponStats);
+            }
+        }
+
+        inventory.helmet = loadout.helmet;
+        inventory.suit = loadout.suit;
+
+        // バックパックをコピー
+        if (loadout.backpack != null)
+        {
+            inventory.backpack = new List<ItemDataSO>(loadout.backpack);
+        }
+
         // ベースステータスを取得
         int baseHP = loadout.archetype.baseHP;
         int baseDmg = loadout.archetype.baseDamage;
         float baseFR = loadout.archetype.baseFireRate;
 
-        // 装備によるボーナスを計算
+        // 装備によるボーナスを計算（新しいシステム + 後方互換性）
         int hpBonus = 0;
         int dmgBonus = 0;
         float frBonus = 0f;
+
+        // 新しい装備システム
+        if (loadout.helmet != null)
+        {
+            hpBonus += loadout.helmet.hpBonus;
+            dmgBonus += loadout.helmet.damageBonus;
+            frBonus += loadout.helmet.fireRateBonus;
+        }
+        if (loadout.suit != null)
+        {
+            hpBonus += loadout.suit.hpBonus;
+            dmgBonus += loadout.suit.damageBonus;
+            frBonus += loadout.suit.fireRateBonus;
+        }
+
+        // 後方互換性: 旧システムのequipA, equipB
         if (loadout.equipA != null) 
         { 
             hpBonus += loadout.equipA.hpBonus; 
             dmgBonus += loadout.equipA.damageBonus; 
-            frBonus += loadout.equipA.fireRateBonus; 
+            frBonus += loadout.equipA.fireRateBonus;
+            // equipAがHelmetまたはSuitとして解釈されていない場合、適切なスロットに設定
+            if (loadout.helmet == null && loadout.equipA.equipmentType == EquipmentType.Helmet)
+            {
+                inventory.helmet = loadout.equipA;
+            }
+            else if (loadout.suit == null && loadout.equipA.equipmentType == EquipmentType.Suit)
+            {
+                inventory.suit = loadout.equipA;
+            }
         }
         if (loadout.equipB != null) 
         { 
             hpBonus += loadout.equipB.hpBonus; 
             dmgBonus += loadout.equipB.damageBonus; 
-            frBonus += loadout.equipB.fireRateBonus; 
+            frBonus += loadout.equipB.fireRateBonus;
+            // equipBがHelmetまたはSuitとして解釈されていない場合、適切なスロットに設定
+            if (loadout.helmet == null && loadout.equipB.equipmentType == EquipmentType.Helmet)
+            {
+                inventory.helmet = loadout.equipB;
+            }
+            else if (loadout.suit == null && loadout.equipB.equipmentType == EquipmentType.Suit)
+            {
+                inventory.suit = loadout.equipB;
+            }
         }
 
         // 戦闘ステータスを初期化
@@ -121,6 +198,29 @@ public class UnitFactory : MonoBehaviour
         ui.targetCanvas = hudCanvas != null ? hudCanvas : ui.targetCanvas;
         ui.labelPrefab = statusLabelPrefab;
 
+        // Collider2Dを確認・追加（UnitInfoUI用）
+        var collider = go.GetComponent<Collider2D>();
+        if (collider == null)
+        {
+            // BoxCollider2Dを追加（マウス検出用）
+            var boxCollider = go.AddComponent<BoxCollider2D>();
+            boxCollider.isTrigger = true;
+            // サイズは適切に設定（必要に応じて調整）
+            boxCollider.size = new Vector2(1f, 1f);
+        }
+
+        // UnitInfoUIを追加（マウスオーバー情報表示用）
+        var unitInfoUI = go.GetComponent<UnitInfoUI>();
+        if (unitInfoUI == null)
+        {
+            unitInfoUI = go.AddComponent<UnitInfoUI>();
+            unitInfoUI.targetCanvas = hudCanvas;
+            
+            // UnitFactoryで設定されたPrefabを自動設定
+            unitInfoUI.simpleInfoWindowPrefab = simpleInfoWindowPrefab;
+            unitInfoUI.detailedInfoWindowPrefab = detailedInfoWindowPrefab;
+        }
+
         // ユニットディレクトリに登録
         if (core == null) core = go.GetComponent<UnitCore>();
         if (core != null) UnitDirectory.Instance.Register(core);
@@ -133,19 +233,9 @@ public class UnitFactory : MonoBehaviour
             DontDestroyOnLoad(bridge);
         }
 
-        // 武器ステータスが設定されていない場合の警告
-        if (weapon != null && loadout.weaponStats == null)
-        {
-            Debug.LogWarning($"Loadout has no WeaponStatsSO for {go.name}");
-        }
-
-        // 武器のステータスと効果を設定
+        // 武器の命中時効果を設定（WeaponItemSOが優先、なければ旧システム）
         if (weapon != null)
         {
-            // 武器ステータスを装備
-            if (loadout.weaponStats != null)
-                weapon.Equip(loadout.weaponStats);
-
             // 命中時効果の適用（優先度: Loadout > 既存設定 > Factoryデフォルト）
             if (loadout.onHitEffects != null)
                 weapon.onHitEffects = loadout.onHitEffects;

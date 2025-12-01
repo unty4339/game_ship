@@ -15,6 +15,16 @@ MonoBehaviour:
   m_GroupName: Default Local Group
   m_GUID: 5b083ed5f10af3d4aad8af31b25356d7
   m_SerializeEntries:
+  - m_GUID: 3758f2c6f31f2504584748329ef9f01c
+    m_Address: detailedUnitInfoWindowPrefab.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4dba9cee6d77e3b4db7c76d990b18a98
+    m_Address: simpleInfoWindowPrefab.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e0c21d96eda35ba4d96156a5232e3ccc
     m_Address: NameTag.prefab
     m_ReadOnly: 0

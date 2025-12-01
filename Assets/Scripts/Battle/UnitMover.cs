@@ -117,8 +117,17 @@ public class UnitMover : MonoBehaviour
 
         // 次のウェイポイントへの方向ベクトルを計算
         Vector2 direction = ((Vector2)path.vectorPath[currentWaypoint] - (Vector2)transform.position).normalized;
-        // 速度と時間に基づいて移動量を計算
-        Vector2 movement = direction * speed * Time.deltaTime;
+        
+        // 重量による移動速度ペナルティを取得
+        float speedPenalty = 1.0f;
+        var core = GetComponent<UnitCore>();
+        if (core != null && core.Inventory != null)
+        {
+            speedPenalty = core.Inventory.GetMoveSpeedPenalty();
+        }
+
+        // 速度と時間に基づいて移動量を計算（重量ペナルティを適用）
+        Vector2 movement = direction * speed * speedPenalty * Time.deltaTime;
         // ユニットを移動
         transform.Translate(movement);
 

@@ -86,6 +86,25 @@ public class UnitCore : MonoBehaviour
     public WeaponController Weapon { get; private set; }
 
     /// <summary>
+    /// インベントリ管理コンポーネントへの参照
+    /// 装備・インベントリ・重量管理を行います
+    /// 遅延初期化に対応（UnitFactoryで後から追加される可能性があるため）
+    /// </summary>
+    public UnitInventory Inventory
+    {
+        get
+        {
+            if (_inventory == null)
+            {
+                _inventory = GetComponent<UnitInventory>();
+            }
+            return _inventory;
+        }
+        private set => _inventory = value;
+    }
+    private UnitInventory _inventory;
+
+    /// <summary>
     /// 初期化処理
     /// 必要なコンポーネントの参照を取得します
     /// 各コンポーネントは同じGameObjectにアタッチされている必要があります
@@ -102,6 +121,8 @@ public class UnitCore : MonoBehaviour
         Perception = GetComponent<UnitPerception>();
         // TargetingとWeaponはStartで取得（循環参照を避けるため）
         Weapon = GetComponent<WeaponController>();
+        // Inventoryは遅延初期化（UnitFactoryで後から追加される可能性があるため）
+        _inventory = GetComponent<UnitInventory>();
     }
 
     void Start()
@@ -116,6 +137,12 @@ public class UnitCore : MonoBehaviour
         if (Targeting == null)
         {
             Targeting = GetComponent<UnitTargeting>();
+        }
+
+        // Inventoryが取得できていない場合は再試行（UnitFactoryで後から追加された場合）
+        if (_inventory == null)
+        {
+            _inventory = GetComponent<UnitInventory>();
         }
     }
 

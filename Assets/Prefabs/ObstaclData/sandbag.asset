@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bdc542b6608dd61499dfb5503d26e923, type: 3}
   m_Name: sandbag
   m_EditorClassIdentifier: 
-  displayName: "\u969C\u5BB3\u7269"
-  defaultSprite: {fileID: 0}
+  displayName: "\u571F\u56A2"
+  defaultSprite: {fileID: -7634170915632712469, guid: 32db35b491d88bc42a1b290721b4c210, type: 3}
   maxHP: 100
   isWalkable: 1
   walkCostMultiplier: 1
   coverEffectiveness: 0.5
   canStandOn: 0
-  obstaclePrefab: {fileID: 0}
+  obstaclePrefab: {fileID: 7788879133634885006, guid: 5fc3a97480feaec439bb6d69cb29b689, type: 3}

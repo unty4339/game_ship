@@ -160,6 +160,17 @@ public class AutoDummyRosterSetup : MonoBehaviour
         col.isTrigger = true;
         var selectable = go.AddComponent<Selectable>();
 
+        // UnitInfoUIを追加（マウスオーバー情報表示用）
+        var unitInfoUI = go.AddComponent<UnitInfoUI>();
+        
+        // UnitFactoryからPrefabを自動設定（UnitFactoryが存在する場合）
+        var factory = FindFirstObjectByType<UnitFactory>();
+        if (factory != null)
+        {
+            unitInfoUI.simpleInfoWindowPrefab = factory.simpleInfoWindowPrefab;
+            unitInfoUI.detailedInfoWindowPrefab = factory.detailedInfoWindowPrefab;
+        }
+
         // 見た目のハイライトを軽く作るなら
         var ring = new GameObject("Highlight");
         ring.transform.SetParent(go.transform, false);
