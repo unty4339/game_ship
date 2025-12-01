@@ -374,4 +374,3 @@ public class MapManager : SingletonMonoBehaviour<MapManager>
     }
 #endif
 }
-

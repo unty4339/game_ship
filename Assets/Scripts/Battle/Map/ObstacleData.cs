@@ -39,5 +39,3 @@ public class ObstacleData : ScriptableObject
     [Tooltip("障害物のプレハブ（Obstacleコンポーネントがアタッチされている必要があります）")]
     public GameObject obstaclePrefab;
 }
-
-
