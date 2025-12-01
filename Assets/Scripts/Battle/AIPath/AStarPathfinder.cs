@@ -295,8 +295,17 @@ public class AStarPathfinder : MonoBehaviour
     {
         int dx = Mathf.Abs(a.x - b.x);
         int dy = Mathf.Abs(a.y - b.y);
-        if (dx + dy == 2) return SQRT2;
-        return 1f;
+        float baseCost = (dx + dy == 2) ? SQRT2 : 1f;
+
+        // 障害物による移動コスト倍率を適用
+        var mm = MapManager.Instance;
+        if (mm != null)
+        {
+            float costMultiplier = mm.GetMovementCost(b);
+            return baseCost * costMultiplier;
+        }
+
+        return baseCost;
     }
 
     List<Vector3Int> Reconstruct(List<Node> nodes, int goalIndex)

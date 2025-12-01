@@ -18,6 +18,15 @@ public class MapManager : SingletonMonoBehaviour<MapManager>
     [Tooltip("通行可能とみなすのに床タイルが必要かどうか falseなら床が無くても通行可")]
     [SerializeField] private bool requireFloorForPassable = true;
 
+    [Header("Obstacle")]
+    [Tooltip("障害物を配置する親オブジェクト（nullの場合は自動生成）")]
+    [SerializeField] private Transform obstacleParent;
+
+    /// <summary>
+    /// 障害物の辞書（座標 -> 障害物）
+    /// </summary>
+    private Dictionary<Vector3Int, Obstacle> obstacleMap = new Dictionary<Vector3Int, Obstacle>();
+
     /// <summary>
     /// マップの更新バージョン
     /// 壁や床の構造が変化するたびに加算される
@@ -34,11 +43,19 @@ public class MapManager : SingletonMonoBehaviour<MapManager>
     /// <summary>
     /// 指定セルが通行可能かを返す
     /// デフォルトでは壁が無く かつ床が必要な場合は床が存在する場合のみtrue
+    /// 障害物があり、かつIsWalkableがfalseならfalseを返す
     /// </summary>
     public bool IsPassable(Vector3Int cell)
     {
         bool hasWall = HasWall(cell);
         if (hasWall) return false;
+
+        // 障害物のチェック
+        var obstacle = GetObstacleAt(cell);
+        if (obstacle != null && !obstacle.Data.isWalkable)
+        {
+            return false;
+        }
 
         if (!requireFloorForPassable) return true;
         return HasFloor(cell);
@@ -239,6 +256,99 @@ public class MapManager : SingletonMonoBehaviour<MapManager>
         Touch();
     }
 
+    /// <summary>
+    /// 指定座標に障害物を配置する
+    /// </summary>
+    /// <param name="cell">配置するセル座標</param>
+    /// <param name="data">障害物データ</param>
+    public void PlaceObstacle(Vector3Int cell, ObstacleData data)
+    {
+        if (data == null || data.obstaclePrefab == null)
+        {
+            Debug.LogWarning("ObstacleDataまたはプレハブがnullです");
+            return;
+        }
+
+        // 既に障害物がある場合は削除
+        if (obstacleMap.ContainsKey(cell))
+        {
+            RemoveObstacle(cell);
+        }
+
+        // 親オブジェクトを取得または作成
+        if (obstacleParent == null)
+        {
+            var parentObj = new GameObject("Obstacles");
+            obstacleParent = parentObj.transform;
+        }
+
+        // ワールド座標を取得
+        Vector3 worldPos = CellToWorldCenter(cell);
+
+        // プレハブをインスタンス化
+        GameObject obstacleObj = Instantiate(data.obstaclePrefab, worldPos, Quaternion.identity, obstacleParent);
+        Obstacle obstacle = obstacleObj.GetComponent<Obstacle>();
+
+        if (obstacle == null)
+        {
+            Debug.LogError("プレハブにObstacleコンポーネントがアタッチされていません");
+            Destroy(obstacleObj);
+            return;
+        }
+
+        // 初期化
+        obstacle.Initialize(cell, data);
+
+        // 辞書に登録
+        obstacleMap[cell] = obstacle;
+
+        Touch();
+    }
+
+    /// <summary>
+    /// 指定座標の障害物を取得する（無ければnull）
+    /// </summary>
+    /// <param name="cell">セル座標</param>
+    /// <returns>障害物、またはnull</returns>
+    public Obstacle GetObstacleAt(Vector3Int cell)
+    {
+        obstacleMap.TryGetValue(cell, out Obstacle obstacle);
+        return obstacle;
+    }
+
+    /// <summary>
+    /// 障害物を削除し、辞書から消す
+    /// </summary>
+    /// <param name="cell">削除するセルの座標</param>
+    public void RemoveObstacle(Vector3Int cell)
+    {
+        if (obstacleMap.TryGetValue(cell, out Obstacle obstacle))
+        {
+            obstacleMap.Remove(cell);
+            if (obstacle != null)
+            {
+                Destroy(obstacle.gameObject);
+            }
+            Touch();
+        }
+    }
+
+    /// <summary>
+    /// そのタイルの移動コスト倍率を返す
+    /// 障害物があればData.WalkCostMultiplierを返す。なければ1.0f
+    /// </summary>
+    /// <param name="cell">セル座標</param>
+    /// <returns>移動コスト倍率</returns>
+    public float GetMovementCost(Vector3Int cell)
+    {
+        var obstacle = GetObstacleAt(cell);
+        if (obstacle != null && obstacle.Data != null)
+        {
+            return obstacle.Data.walkCostMultiplier;
+        }
+        return 1.0f;
+    }
+
 #if UNITY_EDITOR
     /// <summary>
     /// シーンビューでのデバッグ表示
@@ -264,3 +374,4 @@ public class MapManager : SingletonMonoBehaviour<MapManager>
     }
 #endif
 }
+
