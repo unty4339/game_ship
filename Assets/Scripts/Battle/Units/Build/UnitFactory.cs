@@ -25,15 +25,6 @@ public class UnitFactory : MonoBehaviour
     /// <summary>ステータス表示用のラベルプレハブ</summary>
     public TextMeshProUGUI statusLabelPrefab;
 
-    [Header("UnitInfoUI")]
-    /// <summary>簡易情報ウィンドウのPrefab（マウスオーバー時に表示）</summary>
-    [Tooltip("簡易情報ウィンドウのPrefab（マウスオーバー時に表示）")]
-    public GameObject simpleInfoWindowPrefab;
-
-    /// <summary>詳細情報ウィンドウのPrefab（右クリック時に表示）</summary>
-    [Tooltip("詳細情報ウィンドウのPrefab（右クリック時に表示）")]
-    public GameObject detailedInfoWindowPrefab;
-
     [Header("Combat Effects")]
     /// <summary>デフォルトの命中時効果</summary>
     public WeaponEffectsSO defaultOnHitEffects;
@@ -198,28 +189,19 @@ public class UnitFactory : MonoBehaviour
         ui.targetCanvas = hudCanvas != null ? hudCanvas : ui.targetCanvas;
         ui.labelPrefab = statusLabelPrefab;
 
-        // Collider2Dを確認・追加（UnitInfoUI用）
+        // Collider2Dを確認・追加（レイキャスト検出用）
         var collider = go.GetComponent<Collider2D>();
         if (collider == null)
         {
-            // BoxCollider2Dを追加（マウス検出用）
+            // BoxCollider2Dを追加（HoverInfoUIManagerのレイキャスト検出用）
             var boxCollider = go.AddComponent<BoxCollider2D>();
             boxCollider.isTrigger = true;
             // サイズは適切に設定（必要に応じて調整）
             boxCollider.size = new Vector2(1f, 1f);
         }
 
-        // UnitInfoUIを追加（マウスオーバー情報表示用）
-        var unitInfoUI = go.GetComponent<UnitInfoUI>();
-        if (unitInfoUI == null)
-        {
-            unitInfoUI = go.AddComponent<UnitInfoUI>();
-            unitInfoUI.targetCanvas = hudCanvas;
-            
-            // UnitFactoryで設定されたPrefabを自動設定
-            unitInfoUI.simpleInfoWindowPrefab = simpleInfoWindowPrefab;
-            unitInfoUI.detailedInfoWindowPrefab = detailedInfoWindowPrefab;
-        }
+        // 注: UnitInfoUIコンポーネントは各ユニットに追加しません
+        // HoverInfoUIManagerがレイキャストで検出して情報を表示します
 
         // ユニットディレクトリに登録
         if (core == null) core = go.GetComponent<UnitCore>();

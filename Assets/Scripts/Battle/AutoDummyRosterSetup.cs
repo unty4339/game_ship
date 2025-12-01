@@ -156,20 +156,12 @@ public class AutoDummyRosterSetup : MonoBehaviour
         var per = go.AddComponent<UnitPerception>();
         var tgt = go.AddComponent<UnitTargeting>();
         var wep = go.AddComponent<WeaponController>();
-        var col = go.AddComponent<BoxCollider2D>(); // クリック検出用
+        var col = go.AddComponent<BoxCollider2D>(); // クリック検出用・レイキャスト検出用
         col.isTrigger = true;
         var selectable = go.AddComponent<Selectable>();
 
-        // UnitInfoUIを追加（マウスオーバー情報表示用）
-        var unitInfoUI = go.AddComponent<UnitInfoUI>();
-        
-        // UnitFactoryからPrefabを自動設定（UnitFactoryが存在する場合）
-        var factory = FindFirstObjectByType<UnitFactory>();
-        if (factory != null)
-        {
-            unitInfoUI.simpleInfoWindowPrefab = factory.simpleInfoWindowPrefab;
-            unitInfoUI.detailedInfoWindowPrefab = factory.detailedInfoWindowPrefab;
-        }
+        // 注: UnitInfoUIコンポーネントは各ユニットに追加しません
+        // HoverInfoUIManagerがレイキャストで検出して情報を表示します
 
         // 見た目のハイライトを軽く作るなら
         var ring = new GameObject("Highlight");
