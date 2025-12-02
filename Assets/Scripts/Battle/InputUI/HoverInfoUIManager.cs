@@ -48,7 +48,7 @@ public class HoverInfoUIManager : MonoBehaviour
     [Header("表示設定")]
     /// <summary>ウィンドウのマウス位置からのオフセット（ピクセル単位）</summary>
     [Tooltip("ウィンドウのマウス位置からのオフセット")]
-    public Vector2 windowOffset = new Vector2(10, 10);
+    public Vector2 windowOffset = new Vector2(5, 5);
 
     /// <summary>詳細UIの表示位置タイプ</summary>
     public enum DetailedUIPositionType
@@ -151,7 +151,7 @@ public class HoverInfoUIManager : MonoBehaviour
 
         // マウス位置からレイキャスト
         Vector3 mouseWorld = _camera.ScreenToWorldPoint(Input.mousePosition);
-        mouseWorld.z = 0f;
+        mouseWorld.z = 1f;
 
         RaycastHit2D hit = Physics2D.Raycast(mouseWorld, Vector2.zero, raycastMaxDistance, raycastLayerMask);
 
