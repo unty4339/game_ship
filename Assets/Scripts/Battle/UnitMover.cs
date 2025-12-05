@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 /// <summary>
 /// ユニットの移動を管理するクラス
 /// </summary>
-public class UnitMover : MonoBehaviour
+public class UnitMover : GameTimeBehaviour
 {
     private Path path;
     private float speed = 2f;
@@ -127,7 +127,7 @@ public class UnitMover : MonoBehaviour
         }
 
         // 速度と時間に基づいて移動量を計算（重量ペナルティを適用）
-        Vector2 movement = direction * speed * speedPenalty * Time.deltaTime;
+        Vector2 movement = direction * speed * speedPenalty * dt;
         // ユニットを移動
         transform.Translate(movement);
 
